@@ -24,6 +24,12 @@ proc f64*(arr: var DataBuffer): float64 =
 proc convert*[A](arr: var seq[uint8]): A =
   result = cast[ptr A](arr)[]
 
+proc u16*(arr: var seq[uint8]): uint16 =
+  result = cast[uint16](arr)
+
+proc i16*(arr: var seq[uint8]): int16 =
+  result = cast[int16](arr)
+
 proc u32*(arr: var seq[uint8]): uint32 =
   result = convert[uint32](arr)
 

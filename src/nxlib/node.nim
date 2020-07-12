@@ -5,6 +5,9 @@ const NODE_OFFSET* = 52
 
 type
   OffsetTable* = seq[uint64]
+  NxBitmapSize* = tuple
+    x: uint16
+    y: uint16
   NxType* = enum
     ntNone = 0,
     ntInt = 1,
@@ -13,8 +16,8 @@ type
     ntVector = 4,
     ntBitmap = 5,
     ntAudio = 6,
-  NxBaseObj = ref object of RootObj
-    root*: ptr NxFile
+  NxBaseObj* = ref object of RootObj
+    root*: NxFile
   NxNode* = ref object of NxBaseObj
     name_id*: uint32
     first_id*: uint32
