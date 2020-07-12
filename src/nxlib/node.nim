@@ -1,8 +1,10 @@
-import streams, memfiles
+import memfiles
 import util
 
+const NODE_OFFSET* = 52
+
 type
-  OffsetTable = seq[uint64]
+  OffsetTable* = seq[uint64]
   NxType* = enum
     ntNone = 0,
     ntInt = 1,
@@ -30,17 +32,24 @@ type
   NxHeader* = ref object of NxBaseObj
     magic*: string
     node_count*: uint32
-    node_offset*: ptr NxNode
+    node_offset*: uint64 # ptr NxNode
     string_count*: uint32
-    string_offset*: ptr OffsetTable
+    string_offset*: uint64 # ptr OffsetTable
     bitmap_count*: uint32
-    bitmap_offset*: ptr OffsetTable
+    bitmap_offset*: uint64 # ptr OffsetTable
     audio_count*: uint32
-    audio_offset*: ptr OffsetTable
+    audio_offset*: uint64 # ptr OffsetTable
   NxFile* = ref object of RootObj
+    length*: int64
     header*: NxHeader
     file*: MemMapFileStream
     nodes*: seq[NxNode]
+    strings*: seq[NxString]
+    string_offsets*: OffsetTable
+    bitmaps*: seq[NxBitmap]
+    bitmap_offsets*: OffsetTable
+    audios*: seq[NxAudio]
+    audio_offsets*: OffsetTable
 
 proc toNxType*(i: uint16): NxType =
   case i:

@@ -11,3 +11,4 @@ bin           = @["nxlib"]
 # Dependencies
 
 requires "nim >= 1.2.4"
+requires "nimlz4 >= 0.2.0"
