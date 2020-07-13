@@ -12,3 +12,4 @@ bin           = @["nxlib"]
 
 requires "nim >= 1.2.4"
 requires "nimlz4 >= 0.2.0"
+requires "nimpng >= 0.3.1"

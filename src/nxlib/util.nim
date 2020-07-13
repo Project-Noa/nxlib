@@ -51,3 +51,25 @@ proc getFileLength*(filename: string): int64 =
   let tmp = filename.open(fmRead)
   result = tmp.getFileSize()
   tmp.close()
+
+proc `+`*(a, p: pointer): pointer =
+  result = cast[pointer](cast[int](a) + 1 * sizeof(p))
+
+proc `+`*(a: pointer, i: SomeInteger): pointer =
+  result = cast[pointer](cast[int](a) + 1 * i.int)
+
+proc toByteArray*[T](i: var T): seq[uint8] =
+  result.setLen(sizeof(typeof(i)))
+  for n in 0..<sizeof(i):
+    var
+      v = cast[ptr uint8](addr(i) + n)
+    result[n] = v[]
+
+proc asBytes*(i: SomeNumber): seq[uint8] =
+  var ii = i
+  result = toByteArray[typeof(i)](ii)
+
+proc asBytes*(s: string): seq[uint8] =
+  for c in s: result.add(c.uint8)
+  if result.len mod 2 == 1:
+    result.add(0)
