@@ -21,10 +21,21 @@ proc zeros(t: typedesc): seq[uint8] =
   for i in 0..<sizeof(t):
     result.add(0)
 
+proc childCount(node: NxNode): uint32 =
+  result = node.children.len.uint32
+  for child in node.children:
+    result.inc(child.childCount.int)
+
+proc nodeCount*(nx: NxFile): uint32 =
+  result = 0
+  for root in nx.rootNodes:
+    result.inc(root.childCount.int)
+
 proc `*`(header: NxHeader): seq[uint8] =
   result = @[]
   for c in header.magic: result.add(c.uint8)
-  result.add(header.root.nodes.len.uint32.asbytes)
+  # result.add(header.root.nodes.len.uint32.asbytes)
+  result.add(header.root.nodeCount.asBytes)
   result.add(uint64.zeros)
   result.add(header.root.strings.len.uint32.asbytes)
   result.add(uint64.zeros)

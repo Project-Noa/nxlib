@@ -6,10 +6,16 @@ import nxlib/node, nxlib/util, nxlib/read, nxlib/write
 
 import nimpng, nimlz4
 proc dbg() =
-  #[
+  # [
   var nx = "./test.nx".newNxFile
   let base = nx << "" # base node
   
+  let character = newNxNone()
+  base["Character"] = character
+
+  let skin0 = newNxNone()
+  character["0002000.img"] = skin0
+
   let child = newNxInt(45)
   base["child"] = child
 
@@ -32,12 +38,18 @@ proc dbg() =
 
   nx.save()
   # ]#
-  let nx2 = openNxFile("./test.nx")
+  #[
+  let nx2 = openNxFile("./Map.nx")
   for nxs in nx2.strings:
     echo nxs.toString
   for nxb in nx2.bitmaps:
     nxb.decode()
     echo nxb.png.width, ", ", nxb.png.height
+  for root in nx2.rootNodes:
+    for node in root.children:
+      echo node.id
+
+  # ]#
 
 when isMainModule: dbg()
 

@@ -178,3 +178,5 @@ proc openNxFile*(path: string): NxFile =
       let last = node.first_child_id + node.children_count
       node.children = result.nodes[node.first_child_id..<last]
       assert node.children_count == node.children.len.uint, "wrong children count"
+      for child in node.children:
+        child.parent = node

@@ -25,6 +25,7 @@ type
   NxNode* = ref object of NxBaseObj
     id*: uint32 #
     next*: uint32 #
+    parent*: NxNode #
     children*: seq[NxNode] #
     name_id*: uint32
     first_child_id*: uint32
@@ -75,6 +76,9 @@ proc children*(self: NxNode): seq[NxNode] =
   var nx = self.root
   result = nx.nodes[self.first_child_id..<self.children_count]
 ]#
+
+proc rootNodes*(nx: NxFile): seq[NxNode] =
+  result = nx.nodes.filterIt(it.parent.isNil)
 
 proc toInt*(self: NxNode, default: int64 = 0): int64 =
   result = case self.kind:
@@ -276,6 +280,7 @@ proc `+=`*(node: NxNode, child: NxAddChildParameter) =
   node.children.add(child.node)
   node.children_count = node.children.len.uint16
   child.node.name = child.name
+  child.node.parent = node
 
 proc `[]=`*(node: NxNode, name: string, child: NxNode) =
   node += (name, child)
