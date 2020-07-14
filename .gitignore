@@ -1,3 +1,10 @@
 *.nx
 *.dSYM
+*.dylib
+
 /nxlib
+/output
+
+*.wav
+*.png
+*.log
