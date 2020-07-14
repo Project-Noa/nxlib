@@ -11,11 +11,11 @@ const
 # add named node
 proc `<<`*(nx: NxFile, name: string): NxNode =
   result = newNxNode(ntNone)
-  let name_node = newNxNodeString(name, nx)
-  result.id = nx.nodes.len.uint32
-  result.name_id = name_node.id
   result.root = nx
+  result.id = nx.nodes.len.uint32
   nx.nodes.add(result)
+  let name_node = nx.newNxNodeString(name)
+  result.name_id = name_node.id
 
 proc zeros(t: typedesc): seq[uint8] =
   for i in 0..<sizeof(t):
@@ -46,7 +46,7 @@ proc `*`(header: NxHeader): seq[uint8] =
 
   assert result.len == HEADER_SIZE
 
-proc `*`(node: NxNode): seq[uint8] =
+proc `*`(node: NxNode, i: int): seq[uint8] =
   result.add(node.name_id.asBytes)
   result.add(node.first_child_id.asBytes)
   result.add(node.children.len.uint16.asBytes)
@@ -54,8 +54,8 @@ proc `*`(node: NxNode): seq[uint8] =
   for i in 0..<sizeof(node.data[]):
     result.add(node.data[i])
 
-  for child in node.children:
-    result.add(*child)
+  for n, child in node.children:
+    result.add(child * (i + n + 1))
 
 proc `*`(string: NxString): seq[uint8] =
   result.add(string.length.asBytes)
@@ -105,10 +105,10 @@ proc save*(nx: NxFile) =
 
   assert nx.nodes.len > 0
 
-  nx.writer.writeZeroFillMod(4)
+  for i, node in nx.nodes:
+    nx.writer.write(node * i)
 
-  for node in nx.nodes:
-    nx.writer.write(*node)
+  nx.writer.writeZeroFillMod(8)
 
   last_pos = nx.writer.getPosition
   nx.writer[HEADER_STRING_OFFSET_AT] = if nx.strings.len > 0:

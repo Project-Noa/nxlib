@@ -1,3 +1,13 @@
+# documentation
+
+## `[]`(NxFile, string)
+
+```nim
+let nxs: NxString = nx["name"]
+```
+
+create new `NxString` and `NxNode`. NxNode.relative will point a ref of NxString
+
 # preview
 
 ```nim

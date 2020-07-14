@@ -4,25 +4,35 @@
 
 import nxlib/node, nxlib/util, nxlib/read, nxlib/write
 
-import nimpng, nimlz4
+import nimpng, nimlz4, sequtils
 proc dbg() =
   # [
   var nx = "./test.nx".newNxFile
-  let base = nx << "" # base node
+  let base = nx << "" # base node 
+  # 0
+
+  echo "base id: " & $base.id & ", " & base.name
   
-  let character = newNxNone()
+  let character = newNxNone() # 1
   base["Character"] = character
 
-  let skin0 = newNxNone()
-  character["0002000.img"] = skin0
+  echo "character id: " & $character.id & ", " & character.name
 
+  # 2
+  let skin0 = newNxNone() # 3
+  character["0002000.img"] = skin0
+  skin0["z"] = newNxInt(1)
+
+  echo "skin0 id: " & $skin0.id & ", " & skin0.name
+
+  # 4
   let child = newNxInt(45)
   base["child"] = child
 
   let nxf = newNxReal(416.11)
   base["float"] = nxf
 
-  let nxs = newNxNodeString("nine", nx)
+  let nxs = nx.newNxNodeString("nine")
   base["family"] = nxs
 
   let nxv = newNxVector(40, 404)
@@ -38,17 +48,12 @@ proc dbg() =
 
   nx.save()
   # ]#
-  #[
-  let nx2 = openNxFile("./Map.nx")
-  for nxs in nx2.strings:
+  # [
+  let nx2 = openNxFile("./test.nx")
+  for node in nx2.nodes:
+    echo node.children.mapIt(it.id), ": ", node.name, " (", node.name_id, ")"
+  for nxs in nx.strings:
     echo nxs.toString
-  for nxb in nx2.bitmaps:
-    nxb.decode()
-    echo nxb.png.width, ", ", nxb.png.height
-  for root in nx2.rootNodes:
-    for node in root.children:
-      echo node.id
-
   # ]#
 
 when isMainModule: dbg()

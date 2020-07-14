@@ -22,26 +22,33 @@ type
     ntAudio = 6,
   NxBaseObj* = ref object of RootObj
     root*: NxFile
+    relative*: NxData # relative data
+    # when ntString -> NxString
+    # when ntBitmap -> NxBitmap
+    # when ntAudio -> NxAudio
+    # else -> nil
+    parent*: NxNode #
   NxNode* = ref object of NxBaseObj
     id*: uint32 #
     next*: uint32 #
-    parent*: NxNode #
     children*: seq[NxNode] #
     name_id*: uint32
     first_child_id*: uint32
     children_count*: uint16
     kind*: NxType
     data*: DataBuffer
-  NxString* = ref object of NxBaseObj
+  NxData = ref object of NxBaseObj
+    id*: uint32 #
+  NxString* = ref object of NxData
     length*: uint16
     data*: seq[uint8]
-  NxBitmap* = ref object of NxBaseObj
+  NxBitmap* = ref object of NxData
     length*: uint32
     data*: seq[uint8]
     png*: PngResult[string]
     width: uint16 #
     height: uint16 #
-  NxAudio* = ref object of NxBaseObj
+  NxAudio* = ref object of NxData
     data*: seq[uint8]
   NxHeader* = ref object of NxBaseObj
     magic*: string
@@ -217,7 +224,7 @@ proc indexOf[T](arr: seq[T], data: T): int =
     if item == data:
       return index
 
-proc newNxNodeString*(data: string, nx: NxFile): NxNode =
+proc newNxNodeString*(nx: NxFile, data: string): NxNode =
   result = newNxNode(ntString)
   result.root = nx
 
@@ -229,9 +236,10 @@ proc newNxNodeString*(data: string, nx: NxFile): NxNode =
     let new_nxs = newNxString(data)
     nx.strings.add(new_nxs)
     new_nxs
+  
+  result.relative = name_nxs
 
   let id = nx.strings.indexOf(name_nxs)
-
   assert id >= 0
 
   var count = 0
@@ -239,11 +247,19 @@ proc newNxNodeString*(data: string, nx: NxFile): NxNode =
     result.data[count] = b
     count.inc(1)
 
+  let node_id = nx.nodes.len.uint32
+  result.id = node_id
+
 proc name*(self: NxNode): string =
   var nx = self.root
   let name_id = self.name_id
   var ns = nx.strings[name_id]
   result = ns.toString
+
+proc `[]`*(nx: NxFile, s: string): NxString =
+  for nxs in nx.strings:
+    if nxs.toString == s:
+      return nxs
 
 proc `name=`*(self: NxNode, s: string) =
   assert not self.root.isNil, "you must add this node to nx file before set name"
@@ -253,13 +269,13 @@ proc `name=`*(self: NxNode, s: string) =
     if nxs.toString == s:
       id = i
   let name_node = if id < 0:
-    s.newNxNodeString(nx)
+    nx.newNxNodeString(s)
   else:
     echo id
     let filtered = nx.nodes.filterIt(it.kind == ntString and it.data.u32 == id.uint32)
     if filtered.len > 0:
       filtered[0]
-    else: s.newNxNodeString(nx)
+    else: nx.newNxNodeString(s)
 
   self.name_id = name_node.id
 
@@ -275,12 +291,28 @@ type
     name: string
     node: NxNode
 
+proc data_id*(node: NxNode): uint32 =
+  result = case node.kind:
+  of ntString, ntBitmap, ntAudio:
+    node.data.u32
+  else:
+    0.uint32
+
 proc `+=`*(node: NxNode, child: NxAddChildParameter) =
   child.node.root = node.root
+  child.node.parent = node
+  let id = node.children.len.uint32
+  child.node.id = id
+  if node.first_child_id <= 0:
+    node.first_child_id = id
   node.children.add(child.node)
   node.children_count = node.children.len.uint16
-  child.node.name = child.name
-  child.node.parent = node
+  let name_data = node.root[child.name]
+  if name_data.isNil:
+    let new_name_node = node.root.newNxNodeString(child.name)
+    child.node.name_id = new_name_node.relative.id
+  else:
+    child.node.name_id = name_data.id
 
 proc `[]=`*(node: NxNode, name: string, child: NxNode) =
   node += (name, child)
@@ -302,6 +334,8 @@ proc newNxNodeBitmap*(nx: NxFile, uncompressed_data: string): NxNode =
   let nxb = data.newNxBitmap
   let nxb_id = nx.bitmaps.len.uint32
   nx.bitmaps.add(nxb)
+  nxb.id = nxb_id
+  result.relative = nxb
   var count = 0
   for b in nxb_id.asBytes:
     result.data[count] = b
@@ -323,6 +357,8 @@ proc newNxNodeAudio*(nx: NxFile, sound_data: string): NxNode =
   let nxa = sound_data.newNxAudio
   let nxa_id = nx.audios.len.uint32
   nx.audios.add(nxa)
+  nxa.id = nxa_id
+  result.relative = nxa
   var count = 0
   for b in nxa_id.asBytes:
     result.data[count] = b
@@ -350,6 +386,7 @@ proc toNxType*(i: uint16): NxType =
   of 6: ntAudio
   else: ntNone
 
+#[
 proc none*(node: NxNode) =
   node.kind = ntNone
   for i in 0..<8:
@@ -429,6 +466,7 @@ proc `binary=`*(node: NxNode, data: NxFileParameter) =
     for b in data.len.uint32.asBytes:
       node.data[i] = b
       i.inc(1)
+]#
 
 proc decode*(bitmap: NxBitmap) =
   var data = bitmap.data.toString

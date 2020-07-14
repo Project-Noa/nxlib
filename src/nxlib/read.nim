@@ -172,11 +172,11 @@ proc openNxFile*(path: string): NxFile =
     if audio_count > 0:
       let audio_nodes = result.nodes.filterIt(it.kind == ntAudio)
       result.audios = fs.readAudioNodes(result, audio_nodes)
-
+  echo "start node children parse"
   for node in result.nodes:
     if node.children_count > 0:
       let last = node.first_child_id + node.children_count
       node.children = result.nodes[node.first_child_id..<last]
-      assert node.children_count == node.children.len.uint, "wrong children count"
+      assert node.children_count == node.children.len.uint, "wrong children count (" & $node.children_count & "|" & $node.children.len & ")"
       for child in node.children:
         child.parent = node
