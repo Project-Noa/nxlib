@@ -1,6 +1,5 @@
 import node, util
-import nimlz4
-import streams, times, sequtils, strutils
+import streams, times, sequtils
 from memfiles import newMemMapFileStream, MemMapFileStream
 
 proc readHeader*(fs: MemMapFileStream, root: var NxFile): NxHeader =
@@ -28,20 +27,35 @@ proc readHeader*(fs: MemMapFileStream, root: var NxFile): NxHeader =
   result.audio_offset = fs.readUint64
   assert result.audio_offset mod 8 == 0
 
-proc readNode(fs: MemMapFileStream, root: var NxFile): NxNode =
+proc readNode(fs: MemMapFileStream, id: SomeOrdinal, root: var NxFile): NxNode =
   result.new
+
+  result.id = id
   result.root = root
+
   result.name_id = fs.readUint32
-  result.first_id = fs.readUint32
+  result.first_child_id = fs.readUint32
   result.children_count = fs.readUint16
   result.kind = fs.readUint16.toNxType
   # if result.kind != ntNone:
   result.data = array[8, uint8].create()
   discard fs.readData(result.data, 8)
 
+  #[
+  echo "-------- [ node start (", id, ") ] --------"
+  echo "name id: ", result.name_id
+  echo "first child id: ", result.first_child_id
+  echo "children count: ", result.children_count
+  echo "type: ", result.kind
+  var buf = newSeq[uint8](8)
+  for i in 0..<sizeof(result.data[]):
+    buf[i] = result.data[i]
+  echo "raw data: ", buf
+  # ]#
+
 proc readNodes*(fs: MemMapFileStream, root: var NxFile, count: SomeInteger): seq[NxNode] =
   for i in 0..<count:
-    result.add(fs.readNode(root))
+    result.add(fs.readNode(i, root))
 
 proc readString(fs: MemMapFileStream, root: var NxFile, length: uint16): NxString =
   result.new
@@ -69,11 +83,8 @@ proc readBitmap(fs: MemMapFileStream, root: var NxFile, length: uint32): NxBitma
   result.root = root
   result.length = length
   result.data = @[]
-  var buf = array[uint32.high, uint8].create()
-  discard fs.readData(buf, length.int)
-  for byte in buf[]:
-    if byte == 0: break
-    result.data.add(byte)
+  result.data.setLen(length)
+  discard fs.readData(addr(result.data[0]), length.int)
 
 proc readBitmapNodes*(fs: MemMapFileStream, root: var NxFile, count: SomeInteger): seq[NxBitmap] =
   for i in 0..<count:
@@ -85,15 +96,11 @@ proc readAudio(fs: MemMapFileStream, root: var NxFile, length: uint32): NxAudio 
   result.new
   result.root = root
   result.data = @[]
-  var buf = array[uint32.high, uint8].create()
-  discard fs.readData(buf, length.int)
-  for byte in buf[]:
-    if byte == 0: break
-    result.data.add(byte)
+  result.data.setLen(length)
+  discard fs.readData(addr(result.data[0]), length.int)
 
 proc readAudioNodes*(fs: MemMapFileStream, root: var NxFile, audio_nodes: seq[NxNode]): seq[NxAudio] =
   for node in audio_nodes:
-    # let id = node.data.u32
     var c = node.data[4..7]
     let length = c.u32
     result.add(fs.readAudio(root, length))
@@ -110,12 +117,12 @@ proc readOffsetTable(fs: MemMapFileStream, offset: int, count: SomeInteger): seq
   for i in 0..<count:
     result.add(fs.readUint64)
 
-proc openNxFile*(path: string, fm: FileMode = fmRead): NxFile =
+proc openNxFile*(path: string): NxFile =
   result.new
   
   result.length = path.getFileLength()
 
-  let fs = path.newMemMapFileStream(fm)
+  let fs = path.newMemMapFileStream(fmRead)
   result.file = fs
 
   result.header = fs.readHeader(result)
@@ -165,3 +172,9 @@ proc openNxFile*(path: string, fm: FileMode = fmRead): NxFile =
     if audio_count > 0:
       let audio_nodes = result.nodes.filterIt(it.kind == ntAudio)
       result.audios = fs.readAudioNodes(result, audio_nodes)
+
+  for node in result.nodes:
+    if node.children_count > 0:
+      let last = node.first_child_id + node.children_count
+      node.children = result.nodes[node.first_child_id..<last]
+      assert node.children_count == node.children.len.uint, "wrong children count"

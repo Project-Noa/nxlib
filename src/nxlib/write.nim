@@ -10,12 +10,12 @@ const
 
 # add named node
 proc `<<`*(nx: NxFile, name: string): NxNode =
-  result.new
-  nx.nodes.add(result)
-  nx.strings.add(name.newNxString)
-  result.name_id = nx.strings.len.uint32
-  result.data = array[8, uint8].create
+  result = newNxNode(ntNone)
+  let name_node = newNxNodeString(name, nx)
+  result.id = nx.nodes.len.uint32
+  result.name_id = name_node.id
   result.root = nx
+  nx.nodes.add(result)
 
 proc zeros(t: typedesc): seq[uint8] =
   for i in 0..<sizeof(t):
@@ -37,11 +37,14 @@ proc `*`(header: NxHeader): seq[uint8] =
 
 proc `*`(node: NxNode): seq[uint8] =
   result.add(node.name_id.asBytes)
-  result.add(node.first_id.asBytes)
-  result.add(node.children_count.asBytes)
+  result.add(node.first_child_id.asBytes)
+  result.add(node.children.len.uint16.asBytes)
   result.add(node.kind.ord.uint16.asBytes)
   for i in 0..<sizeof(node.data[]):
     result.add(node.data[i])
+
+  for child in node.children:
+    result.add(*child)
 
 proc `*`(string: NxString): seq[uint8] =
   result.add(string.length.asBytes)
@@ -62,21 +65,21 @@ proc `[]=`(fs: FileStream, pos: int, data: seq[uint8]) =
   let last_pos = fs.getPosition
   fs.setPosition(pos)
   fs.write(data)
-  # echo last_pos, ", ", pos, ", ", fs.getPosition, ", ", data
+  echo last_pos, ", ", pos, ", ", fs.getPosition, ", ", data
   fs.setPosition(last_pos)
 
-proc writeZeroFillMod8(nx: NxFile) =
-  if nx.writer.isNil: return
+proc writeZeroFillMod(fs: FileStream, by: int) =
+  if fs.isNil: return
 
-  let pos = nx.writer.getPosition
+  let pos = fs.getPosition
 
-  if pos mod 8 != 0:
-    let tail_count = 8 - pos mod 8
+  if pos mod by != 0:
+    let tail_count = by - pos mod by
     var data: seq[uint8] = @[]
     data.setLen(tail_count)
     for i in 0..<data.len:
       data[i] = 0
-    nx.writer.write(data)
+    fs.write(data)
   
 
 proc save*(nx: NxFile) =
@@ -91,10 +94,10 @@ proc save*(nx: NxFile) =
 
   assert nx.nodes.len > 0
 
+  nx.writer.writeZeroFillMod(4)
+
   for node in nx.nodes:
     nx.writer.write(*node)
-
-  nx.writeZeroFillMod8()
 
   last_pos = nx.writer.getPosition
   nx.writer[HEADER_STRING_OFFSET_AT] = if nx.strings.len > 0:
@@ -105,15 +108,14 @@ proc save*(nx: NxFile) =
   for i in nx.strings:
     nx.writer.write(uint64.zeros)
 
-  # [
-  for nxs in nx.strings:
-    let pos = nx.writer.getPosition
-    let o = pos - last_pos
-    nx.writer[pos - o] = pos.uint64.asBytes
+  for i, nxs in nx.strings:
+    let current_pos = nx.writer.getPosition
+    nx.writer[last_pos + (i * 8)] = current_pos.uint64.asBytes
     nx.writer.write(*nxs)
 
-  nx.writeZeroFillMod8()
-
+  nx.writer.writeZeroFillMod(8)
+  
+  # [
   last_pos = nx.writer.getPosition
   nx.writer[HEADER_BITMAP_OFFSET_AT] = if nx.bitmaps.len > 0:
     last_pos.uint64.asBytes
@@ -123,13 +125,12 @@ proc save*(nx: NxFile) =
   for i in nx.bitmaps:
     nx.writer.write(uint64.zeros)
 
-  for nxb in nx.bitmaps:
-    let pos = nx.writer.getPosition
-    let o = pos - last_pos
-    nx.writer[pos - o] = pos.uint64.asBytes
+  for i, nxb in nx.bitmaps:
+    let current_pos = nx.writer.getPosition
+    nx.writer[last_pos + (i * 8)] = current_pos.uint64.asBytes
     nx.writer.write(*nxb)
-  
-  nx.writeZeroFillMod8()
+
+  nx.writer.writeZeroFillMod(8)
 
   last_pos = nx.writer.getPosition
   nx.writer[HEADER_AUDIO_OFFSET_AT] = if nx.audios.len > 0:
@@ -140,10 +141,9 @@ proc save*(nx: NxFile) =
   for i in nx.audios:
     nx.writer.write(uint64.zeros)
 
-  for nxa in nx.audios:
-    let pos = nx.writer.getPosition
-    let o = pos - last_pos
-    nx.writer[pos - o] = pos.uint64.asBytes
+  for i, nxa in nx.audios:
+    let current_pos = nx.writer.getPosition
+    nx.writer[last_pos + (i * 8)] = current_pos.uint64.asBytes
     nx.writer.write(*nxa)
 
   # ]#

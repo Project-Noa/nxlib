@@ -4,28 +4,40 @@
 
 import nxlib/node, nxlib/util, nxlib/read, nxlib/write
 
+import nimpng, nimlz4
 proc dbg() =
+  #[
   var nx = "./test.nx".newNxFile
-  let node = nx << "something"
-  node <> 7777.int64
+  let base = nx << "" # base node
+  
+  let child = newNxInt(45)
+  base["child"] = child
 
-  let child = nx << "some2"
-  var png = "./80038746_p0.png".open(fmRead)
-  child <> (ntBitmap, png.readAll)
+  let nxf = newNxReal(416.11)
+  base["float"] = nxf
+
+  let nxs = newNxNodeString("nine", nx)
+  base["family"] = nxs
+
+  let nxv = newNxVector(40, 404)
+  base["vector"] = nxv
+
+  let png = "./80038746_p0.png".open(fmRead)
+  let nxb = nx.newNxNodeBitmap(png.readAll)
+  base["bitmap"] = nxb
+
+  let wav = "./bang.wav".open(fmRead)
+  let nxa = nx.newNxNodeAudio(wav.readAll)
+  base["audio"] = nxa
 
   nx.save()
-
-  # [
-  let nxf = openNxFile("./test.nx")
-  echo nxf.header.node_offset
-  echo nxf.header.node_count
-  echo nxf.header.string_offset
-  echo nxf.header.string_count
-  echo nxf.header.bitmap_offset
-  echo nxf.header.bitmap_count
-  echo nxf.header.audio_offset
-  echo nxf.header.audio_count
   # ]#
+  let nx2 = openNxFile("./test.nx")
+  for nxs in nx2.strings:
+    echo nxs.toString
+  for nxb in nx2.bitmaps:
+    nxb.decode()
+    echo nxb.png.width, ", ", nxb.png.height
 
 when isMainModule: dbg()
 
