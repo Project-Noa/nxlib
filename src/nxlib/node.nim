@@ -198,7 +198,7 @@ proc newNxVector*(x, y: int32): NxNode =
       v = cast[ptr uint8](addr(y1) + n)
     result.data[n] = v[]
 
-proc indexOf[T](arr: seq[T], data: T): int =
+proc indexOf(arr: seq[NxNode], data: NxNode): int =
   if data.isNil: return -1    
   result = -1
   for index, item in arr:
@@ -295,10 +295,15 @@ proc incNodeId(node: NxNode): NxNode =
   result = node
   node.id.inc(1)
 
+proc updateChildId(node: NxNode) =
+  if node.children.len > 0:
+    node.first_child_id = node.children[0].id
+
 proc appendChild*(nx: NxFile, parent, child: NxNode) =
   child.root = nx
   # = parent.root
 
+  child.parent = parent
   parent.children.add(child)
   parent.children_count = parent.children.len.uint16
 
@@ -311,7 +316,31 @@ proc appendChild*(nx: NxFile, parent, child: NxNode) =
     new_nodes.add(nx.nodes[0..<last_child_id])
     new_nodes.add(child)
     new_nodes.add(nx.nodes[last_child_id..<nx.nodes.len].map(incNodeId))
+    # update node id
+    for i, node in new_nodes:
+      node.id = i.uint32
+    # update child id
+    for node in new_nodes:
+      node.updateChildId
     nx.nodes = new_nodes
+    
+
+proc detachChild*(nx: NxFile, parent, child: NxNode, with_data: bool = false) =
+  var index = -1
+  for n, node in nx.nodes:
+    if node == child:
+      index = n
+      break
+
+  if index < 0:
+    return
+  return
+
+proc detach*(node: NxNode) =
+  if not node.parent.isNil:
+    node.root.detachChild(node.parent, node)
+  else:
+    echo "Warning! No parent, not works."
 
 proc getName*(node: NxNode): string =
   let name_id = node.name_id

@@ -3,6 +3,8 @@
 # remove this file altogether. You may create additional modules alongside
 # this file as required.
 
+import sequtils
+
 type
   DataBuffer* = ptr array[8, uint8]
 
@@ -44,7 +46,7 @@ proc f64*(arr: var seq[uint8]): float64 =
 
 proc toString*(self: seq[uint8]): string =
   result = ""
-  for byte in self:
+  for byte in self.filterIt(it != 0):
     result.add(byte.char)
 
 proc getFileLength*(filename: string): int64 =

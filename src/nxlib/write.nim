@@ -66,7 +66,7 @@ proc `[]=`(fs: FileStream, pos: int, data: seq[uint8]) =
   let last_pos = fs.getPosition
   fs.setPosition(pos)
   fs.write(data)
-  echo last_pos, ", ", pos, ", ", fs.getPosition, ", ", data
+  # echo last_pos, ", ", pos, ", ", fs.getPosition, ", ", data
   fs.setPosition(last_pos)
 
 proc writeZeroFillMod(fs: FileStream, by: int) =

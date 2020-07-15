@@ -19,6 +19,9 @@ proc dbg() =
   c1.setName("int3-int")
 
   i3["name"] = 1
+  i3 += "subdir"
+  i3["vector2"] = (x: 2, y: 3)
+  i3["vector"] = [1, 2]
   
   let images = nx.baseNode.addNoneNode("images")
   let png = "./80038746_p0.png".open(fmRead)
@@ -29,18 +32,22 @@ proc dbg() =
   let wav = "./bang.wav".open(fmRead)
   let audio1 = musics.addAudioNode(wav.readAll)
   audio1.setName("bang")
+  
+  for node in nx.nodes:
+    echo node.id, ":11 ", node.name, " -> ", node.first_child_id
+
   nx.save()
   # ]#
-  # [
+  #[
   let nx2 = openNxFile("./test.nx")
   echo nx2["int3"].id
   echo nx2["int3"]["int3-int"].id
 
-  let nnode = nx2["int3"]["nil"].create()
-  echo nnode.name
+  # let nnode = nx2["int3"]["nil"].create()
+  echo nx2["int3"].name
 
   # ]#
 
 when isMainModule: dbg()
 
-export node, read, write, util
+export node, read, write, util, sugar

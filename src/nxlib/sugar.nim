@@ -2,8 +2,8 @@ import node
 
 type
   VectorParameter = tuple
-    x: int32
-    y: int32
+    x: int
+    y: int
   BinaryParameter = tuple
     kind: NxType
     data: string
@@ -17,6 +17,12 @@ proc name*(node: NxNode): string =
 proc `name=`*(node: NxNode, name: string) =
   node.setName(name)
 
+proc `+=`*(parent: NxNode, name: string) =
+  discard parent.addNoneNode(name)
+
+proc `+=`*(parent, child: NxNode) =
+  discard
+
 proc `[]=`*(parent: NxNode, child_name: string, i: int64) =
   let node = parent.addIntNode(i)
   node.setName(child_name)
@@ -25,12 +31,12 @@ proc `[]=`*(parent: NxNode, child_name: string, i: float64) =
   let node = parent.addRealNode(i)
   node.setName(child_name)
 
-proc `[]=`*(parent: NxNode, child_name: string, v: array[2, int32]) =
-  let node = parent.addVectorNode(v[0], v[1])
+proc `[]=`*(parent: NxNode, child_name: string, v: array[0..1, int]) =
+  let node = parent.addVectorNode(v[0].int32, v[1].int32)
   node.setName(child_name)
 
 proc `[]=`*(parent: NxNode, child_name: string, v: VectorParameter) =
-  let node = parent.addVectorNode(v.x, v.y)
+  let node = parent.addVectorNode(v.x.int32, v.y.int32)
   node.setName(child_name)
 
 proc `[]=`*(parent: NxNode, child_name: string, s: string) =
@@ -57,8 +63,8 @@ proc `[]`*(nx: NxFile, name: string): NxNode =
   return n
 
 proc `[]`*(node: NxNode, name: string): NxNode =
-  for child in node.children:
-    if node.name == name:
+  for i, child in node.children:
+    if child.name == name:
       return node
   let n = new NilNode
   n.point = node
