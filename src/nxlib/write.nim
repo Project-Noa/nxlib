@@ -8,15 +8,6 @@ const
   HEADER_AUDIO_OFFSET_AT = 0x2C
   HEADER_SIZE = 52
 
-# add named node
-proc `<<`*(nx: NxFile, name: string): NxNode =
-  result = newNxNode(ntNone)
-  result.root = nx
-  result.id = nx.nodes.len.uint32
-  nx.nodes.add(result)
-  let name_node = nx.newNxNodeString(name)
-  result.name_id = name_node.id
-
 proc zeros(t: typedesc): seq[uint8] =
   for i in 0..<sizeof(t):
     result.add(0)
