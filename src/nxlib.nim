@@ -17,12 +17,12 @@ proc dbg() =
   i3.setName("int3")
   let c1 = i3.addIntNode(0xDDDDDDDD'i64)
   c1.setName("int3-int")
-
+  
   i3["name"] = 1
   i3 += "subdir"
   i3["vector2"] = (x: 2, y: 3)
   i3["vector"] = [1, 2]
-  
+
   let images = nx.baseNode.addNoneNode("images")
   let png = "./80038746_p0.png".open(fmRead)
   let image1 = images.addBitmapNode(png.readAll)
@@ -33,8 +33,8 @@ proc dbg() =
   let audio1 = musics.addAudioNode(wav.readAll)
   audio1.setName("bang")
   
-  for node in nx.nodes:
-    echo node.id, ":11 ", node.name, " -> ", node.first_child_id
+  audio1.detach()
+  echo "detached"
 
   nx.save()
   # ]#

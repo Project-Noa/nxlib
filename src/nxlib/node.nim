@@ -322,15 +322,26 @@ proc appendChild*(nx: NxFile, parent, child: NxNode) =
     
 
 proc detachChild*(nx: NxFile, parent, child: NxNode, with_data: bool = false) =
-  var index = -1
-  for n, node in nx.nodes:
-    if node == child:
-      index = n
-      break
+  let
+    abs_index = nx.nodes.indexOf(child)
+    rel_index = parent.children.indexOf(child)
+  
+  echo "child at: ", abs_index, "rel: ", rel_index
+  
+  if abs_index >= 0:
+    if child.children.len <= 0:
+      nx.nodes.delete(abs_index)
+    else:
+      nx.nodes.delete(abs_index, abs_index + child.children.len)
+  if rel_index >= 0:
+    parent.children.delete(rel_index)
+      
 
-  if index < 0:
-    return
-  return
+  for i, node in nx.nodes:
+    node.id = i.uint32
+  for node in nx.nodes:
+    node.updateChildId
+
 
 proc detach*(node: NxNode) =
   if not node.parent.isNil:
