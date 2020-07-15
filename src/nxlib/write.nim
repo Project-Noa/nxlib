@@ -27,9 +27,9 @@ proc childCount(node: NxNode): uint32 =
     result.inc(child.childCount.int)
 
 proc nodeCount*(nx: NxFile): uint32 =
-  result = 0
-  for root in nx.rootNodes:
-    result.inc(root.childCount.int)
+  result = nx.nodes.len.uint32
+  # for root in nx.rootNodes:
+  #  result.inc(root.childCount.int)
 
 proc `*`(header: NxHeader): seq[uint8] =
   result = @[]
@@ -46,23 +46,22 @@ proc `*`(header: NxHeader): seq[uint8] =
 
   assert result.len == HEADER_SIZE
 
-proc `*`(node: NxNode, i: int): seq[uint8] =
+proc `*`(node: NxNode): seq[uint8] =
   result.add(node.name_id.asBytes)
   result.add(node.first_child_id.asBytes)
-  result.add(node.children.len.uint16.asBytes)
+  result.add(node.children_count.uint16.asBytes)
   result.add(node.kind.ord.uint16.asBytes)
   for i in 0..<sizeof(node.data[]):
     result.add(node.data[i])
-
-  for n, child in node.children:
-    result.add(child * (i + n + 1))
+  #for n, child in node.children:
+  #  result.add(child * (i + n + 1))
 
 proc `*`(string: NxString): seq[uint8] =
-  result.add(string.length.asBytes)
+  result.add(string.data.len.uint16.asBytes)
   result.add(string.data)
 
 proc `*`(bitmap: NxBitmap): seq[uint8] =
-  result.add(bitmap.length.asBytes)
+  result.add(bitmap.data.len.uint16.asBytes)
   result.add(bitmap.data)
 
 proc `*`(audio: NxAudio): seq[uint8] =
@@ -91,8 +90,6 @@ proc writeZeroFillMod(fs: FileStream, by: int) =
     for i in 0..<data.len:
       data[i] = 0
     fs.write(data)
-  
-
 proc save*(nx: NxFile) =
   nx.writer.write(*nx.header)
 
@@ -105,8 +102,8 @@ proc save*(nx: NxFile) =
 
   assert nx.nodes.len > 0
 
-  for i, node in nx.nodes:
-    nx.writer.write(node * i)
+  for node in nx.nodes:
+    nx.writer.write(*node)
 
   nx.writer.writeZeroFillMod(8)
 
@@ -123,10 +120,11 @@ proc save*(nx: NxFile) =
     let current_pos = nx.writer.getPosition
     nx.writer[last_pos + (i * 8)] = current_pos.uint64.asBytes
     nx.writer.write(*nxs)
+    # if i >= 1: break
 
+  # [
   nx.writer.writeZeroFillMod(8)
   
-  # [
   last_pos = nx.writer.getPosition
   nx.writer[HEADER_BITMAP_OFFSET_AT] = if nx.bitmaps.len > 0:
     last_pos.uint64.asBytes
@@ -160,3 +158,14 @@ proc save*(nx: NxFile) =
   # ]#
 
   nx.writer.close()
+
+proc newNxFile*(filename: string): NxFile =
+  result.new
+  result.writer = filename.openFileStream(fmWrite)
+
+  result.header = result.newNxHeader
+  
+  let base = newNxNone()
+  result.addNode(base)
+  base.setName("")
+  

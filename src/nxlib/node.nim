@@ -73,7 +73,7 @@ type
     audios*: seq[NxAudio]
     audio_offsets*: OffsetTable
 
-proc toString*(node: NxString): string
+proc toString*(nxs: NxString): string
 proc toNxString*(self: NxNode): NxString
 proc `==`*(kind: NxType, i: SomeInteger): bool = kind.ord == i
 proc `!=`*(kind: NxType, i: SomeInteger): bool = kind.ord != i
@@ -147,8 +147,8 @@ proc toNxAudio*(self: NxNode): NxAudio =
   else:
     nil
 
-proc toString*(node: NxString): string =
-  result = node.data.toString
+proc toString*(nxs: NxString): string =
+  result = nxs.data.toString
 
 proc id*(bitmap: NxBitmap): uint32 =
   result = bitmap.data.u32
@@ -367,15 +367,6 @@ proc newNxNodeAudio*(nx: NxFile, sound_data: string): NxNode =
     result.data[count] = b
     count.inc(1)
 
-proc newNxFile*(filename: string): NxFile =
-  result.new
-  result.writer = filename.openFileStream(fmWrite)
-
-  result.header = result.newNxHeader
-
-  # base node
-  # result[""] = nil 
-
 proc toNxType*(i: uint16): NxType =
   case i:
   of 1: ntInt
@@ -471,3 +462,87 @@ proc `binary=`*(node: NxNode, data: NxFileParameter) =
 proc decode*(bitmap: NxBitmap) =
   var data = bitmap.data.toString
   bitmap.png = decodePNG32(data.uncompress_frame)
+
+proc baseNode*(nx: NxFile): NxNode =
+  result = nx.nodes[0]
+
+proc newNodeId(nx: NxFile): uint32 =
+  result = nx.nodes.len.uint32
+
+proc appendNode(nx: NxFile, node: NxNode) =
+  let id = nx.newNodeId
+  node.id = id
+  nx.nodes.add(node)
+
+proc incNodeId(node: NxNode): NxNode =
+  result = node
+  node.id.inc(1)
+
+proc appendChild*(nx: NxFile, parent, child: NxNode) =
+  child.root = parent.root
+
+  parent.children.add(child)
+  parent.children_count = parent.children.len.uint16
+
+  if parent.first_child_id <= 0:
+    nx.appendNode(child)
+    parent.first_child_id = child.id
+  else:
+    let last_child_id = parent.first_child_id + parent.children_count - 1
+    var new_nodes = newSeq[NxNode]()
+    new_nodes.add(nx.nodes[0..<last_child_id])
+    new_nodes.add(child)
+    new_nodes.add(nx.nodes[last_child_id..<nx.nodes.len].map(incNodeId))
+    nx.nodes = new_nodes
+
+proc addNode*(nx: NxFile, node: NxNode) =
+  let index = nx.nodes.indexOf(node)
+  if index < 0:
+    node.root = nx
+    node.id = nx.newNodeId
+    nx.nodes.add(node)
+
+proc addIntNode*(parent: NxNode, i: int64): NxNode =
+  let v = i.int64
+  result = newNxInt(v)
+  parent.root.appendChild(parent, result)
+
+proc addRealNode*(parent: NxNode, f: float64): NxNode =
+  let v = f.float64
+  result = newNxReal(v)
+  parent.root.appendChild(parent, result)
+
+proc addVectorNode*(parent: NxNode, x, y: int): NxNode =
+  result = newNxVector(x.int32, y. int32)
+  parent.root.appendChild(parent, result)
+
+proc newStringId(nx: NxFile): uint32 =
+  result = nx.strings.len.uint32
+
+proc addString(nx: NxFile, nxs: NxString) =
+  nxs.id = nx.newStringId
+  nx.strings.add(nxs)
+
+proc newNxString2(nx: NxFile, s: string): NxString =
+  let found = nx.strings.filterIt(it.toString == s)
+  if found.len > 0: return found[0]
+  result.new
+  result.data = s.asBytes
+  nx.addString(result)
+
+proc addStringNode*(parent: NxNode, s: string): NxNode =
+  let nxs = parent.root.newNxString2(s)
+  result = newNxNode(ntString)
+  result.relative = nxs
+  var count = 0
+  for b in nxs.id.asBytes:
+    result.data[count] = b
+
+proc getName*(node: NxNode): string {.inline.} =
+  let name_id = node.name_id
+  var ns = node.root.strings[name_id]
+  result = ns.toString
+
+proc setName*(node: NxNode, name: string) =
+  let name_node = node.addStringNode(name)
+  node.root.appendChild(node, name_node)

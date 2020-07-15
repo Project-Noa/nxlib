@@ -61,20 +61,17 @@ proc readString(fs: MemMapFileStream, root: var NxFile, length: uint16): NxStrin
   result.new
   result.root = root
   result.length = length
-  result.data = @[]
-  var buf = array[uint16.high, uint8].create()
-  discard fs.readData(buf, length.int)
-  for byte in buf[]:
-    if byte == 0: break
-    result.data.add(byte)
+  result.data = newSeq[uint8](length)
+  if length > 0:
+    discard fs.readData(addr result.data[0], length.int)
 
 proc readStringNodes*(fs: MemMapFileStream, root: var NxFile, count: SomeInteger): seq[NxString] =
   for i in 0..<count:
     var length = fs.readUint16
     if length mod 2 == 1: length.inc(1)
-    if length > 0:
-      let node = fs.readString(root, length)
-      result.add(node)
+    # if length > 0:
+    let node = fs.readString(root, length)
+    result.add(node)
       # f.writeLine fs.getPosition, ": ", node.toString
       # echo fs.getPosition, ": ", node.toString, " (", i, "/", count - 1, ")"
 
@@ -144,10 +141,10 @@ proc openNxFile*(path: string): NxFile =
 
     if string_count > 0:
       result.strings = fs.readStringNodes(result, string_count)
-    else:
-      fs.skip(2)
-  else:
-    fs.skip(2)
+    # else:
+    #   fs.skip(2)
+  # else:
+  #   fs.skip(2)
 
   let bitmap_offset = result.header.bitmap_offset
   if bitmap_offset > NODE_OFFSET:
@@ -158,10 +155,10 @@ proc openNxFile*(path: string): NxFile =
 
     if bitmap_count > 0:
       result.bitmaps = fs.readBitmapNodes(result, bitmap_count)
-    else:
-      fs.skip(4)
-  else:
-    fs.skip(4)
+    # else:
+    #   fs.skip(4)
+  # else:
+  #   fs.skip(4)
 
   let audio_offset = result.header.audio_offset
   if audio_offset > NODE_OFFSET:
@@ -172,10 +169,12 @@ proc openNxFile*(path: string): NxFile =
     if audio_count > 0:
       let audio_nodes = result.nodes.filterIt(it.kind == ntAudio)
       result.audios = fs.readAudioNodes(result, audio_nodes)
-  echo "start node children parse"
+  # echo "start node children parse"
+  # echo result.nodes.len
   for node in result.nodes:
     if node.children_count > 0:
       let last = node.first_child_id + node.children_count
+      # echo node.first_child_id, " ~ ", last
       node.children = result.nodes[node.first_child_id..<last]
       assert node.children_count == node.children.len.uint, "wrong children count (" & $node.children_count & "|" & $node.children.len & ")"
       for child in node.children:
