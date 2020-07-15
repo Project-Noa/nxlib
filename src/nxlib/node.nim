@@ -291,10 +291,6 @@ proc appendNode(nx: NxFile, node: NxNode) =
   node.id = id
   nx.nodes.add(node)
 
-proc incNodeId(node: NxNode): NxNode =
-  result = node
-  node.id.inc(1)
-
 proc updateChildId(node: NxNode) =
   if node.children.len > 0:
     node.first_child_id = node.children[0].id
@@ -315,7 +311,7 @@ proc appendChild*(nx: NxFile, parent, child: NxNode) =
     var new_nodes = newSeq[NxNode]()
     new_nodes.add(nx.nodes[0..<last_child_id])
     new_nodes.add(child)
-    new_nodes.add(nx.nodes[last_child_id..<nx.nodes.len].map(incNodeId))
+    new_nodes.add(nx.nodes[last_child_id..<nx.nodes.len])
     # update node id
     for i, node in new_nodes:
       node.id = i.uint32
