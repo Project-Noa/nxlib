@@ -33,12 +33,10 @@ proc dbg() =
   let audio1 = musics.addAudioNode(wav.readAll)
   audio1.setName("bang")
   
-  audio1.detach()
-  echo "detached"
 
   nx.save()
   # ]#
-  #[
+  # [
   let nx2 = openNxFile("./test.nx")
   echo nx2["int3"].id
   echo nx2["int3"]["int3-int"].id

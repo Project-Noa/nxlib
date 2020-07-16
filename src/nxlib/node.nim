@@ -335,12 +335,13 @@ proc detachChild*(nx: NxFile, parent, child: NxNode, with_data: bool = false) =
       nx.nodes.delete(abs_index, abs_index + child.children.len)
   if rel_index >= 0:
     parent.children.delete(rel_index)
-      
 
   for i, node in nx.nodes:
     node.id = i.uint32
   for node in nx.nodes:
     node.updateChildId
+
+  nx.header.node_count = nx.nodes.len.uint32
 
 
 proc detach*(node: NxNode) =
