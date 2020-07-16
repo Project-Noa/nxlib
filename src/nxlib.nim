@@ -2,7 +2,7 @@
 # exports the main API in this file. Note that you cannot rename this file
 # but you can remove it if you wish.
 
-import nxlib/[node, util, read, write, sugar]
+import nxlib/[node, util, read, write, sugar, compat]
 
 import nimpng
 
@@ -25,8 +25,13 @@ proc dbg() =
 
   let images = nx.baseNode.addNoneNode("images")
   let png = "./80038746_p0.png".open(fmRead)
-  let image1 = images.addBitmapNode(png.readAll)
+  let data = png.readAll
+  echo data.len
+  let image1 = images.addBitmapNode(data)
   image1.setName("g11")
+  let bitmap = cast[NxBitmap](image1.relative)
+  echo bitmap.length
+  echo bitmap.image.len
   
   let musics = nx.baseNode.addNoneNode("musics")
   let wav = "./bang.wav".open(fmRead)
@@ -46,6 +51,8 @@ proc dbg() =
 
   # ]#
 
-when isMainModule: dbg()
+when isMainModule: 
+  echo "nx library has been loaded"
+  # dbg()
 
-export node, read, write, util, sugar
+export node, read, write, util, sugar, compat

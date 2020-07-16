@@ -49,6 +49,11 @@ proc toString*(self: seq[uint8]): string =
   for byte in self.filterIt(it != 0):
     result.add(byte.char)
 
+proc toStringNoTermiate*(self: seq[uint8]): string =
+  result = ""
+  for byte in self:
+    result.add(byte.char)
+
 proc getFileLength*(filename: string): int64 =
   let tmp = filename.open(fmRead)
   result = tmp.getFileSize()
@@ -75,3 +80,6 @@ proc asBytes*(s: string): seq[uint8] =
   for c in s: result.add(c.uint8)
   if result.len mod 2 == 1:
     result.add(0)
+
+proc asBytesNoPad*(s: string): seq[uint8] =
+  for c in s: result.add(c.uint8)

@@ -6,13 +6,13 @@ const NODE_OFFSET* = 52
 
 type
   OffsetTable* = seq[uint64]
-  NxVector* = tuple
+  NxVector* {.exportc.} = tuple
     x: int32
     y: int32
   NxBitmapSize* = tuple
     x: uint16
     y: uint16
-  NxType* = enum
+  NxType* {.exportc.} = enum
     ntNone = 0,
     ntInt = 1,
     ntReal = 2,
@@ -20,7 +20,7 @@ type
     ntVector = 4,
     ntBitmap = 5,
     ntAudio = 6,
-  NxBaseObj* = ref object of RootObj
+  NxBaseObj* {.exportc.} = ref object of RootObj
     root*: NxFile
     relative*: NxData # relative data
     # when ntString -> NxString
@@ -28,7 +28,7 @@ type
     # when ntAudio -> NxAudio
     # else -> nil
     parent*: NxNode #
-  NxNode* = ref object of NxBaseObj
+  NxNode* {.exportc.} = ref object of NxBaseObj
     id*: uint32 #
     next*: uint32 #
     children*: seq[NxNode] #
@@ -39,18 +39,16 @@ type
     data*: DataBuffer
   NxData = ref object of NxBaseObj
     id*: uint32 #
-  NxString* = ref object of NxData
+    data*: seq[uint8]
+  NxString* {.exportc.} = ref object of NxData
     length*: uint16
-    data*: seq[uint8]
-  NxBitmap* = ref object of NxData
+  NxBitmap* {.exportc.} = ref object of NxData
     length*: uint32
-    data*: seq[uint8]
     png*: PngResult[string]
     width: uint16 #
     height: uint16 #
-  NxAudio* = ref object of NxData
-    data*: seq[uint8]
-  NxHeader* = ref object of NxBaseObj
+  NxAudio* {.exportc.} = ref object of NxData
+  NxHeader* {.exportc.} = ref object of NxBaseObj
     magic*: string
     node_count*: uint32
     node_offset*: uint64
@@ -60,10 +58,10 @@ type
     bitmap_offset*: uint64
     audio_count*: uint32
     audio_offset*: uint64
-  NxFile* = ref object of RootObj
+  NxFile* {.exportc.} = ref object of RootObj
     length*: int64
     header*: NxHeader
-    file*: MemMapFileStream
+    file*: Stream
     writer*: FileStream
     nodes*: seq[NxNode]
     strings*: seq[NxString]
@@ -77,6 +75,7 @@ proc toString*(nxs: NxString): string
 proc toNxString*(self: NxNode): NxString
 proc `==`*(kind: NxType, i: SomeInteger): bool = kind.ord == i
 proc `!=`*(kind: NxType, i: SomeInteger): bool = kind.ord != i
+proc vector*(node: NxNode): NxVector
 
 proc toInt*(self: NxNode, default: int64 = 0): int64 =
   result = case self.kind:
@@ -90,9 +89,13 @@ proc toInt*(self: NxNode, default: int64 = 0): int64 =
 
 proc toString*(self: NxNode, default: string = ""): string =
   result = case self.kind:
-    of ntNone, ntAudio, ntBitmap, ntVector: default
+    of ntNone, ntAudio, ntBitmap: default
     of ntInt: $ self.data.i64
     of ntReal: $ self.data.f64
+    of ntVector:
+      let
+        v = self.vector
+      $v.x & ", " & $v.y 
     of ntString:
       var
         nx = self.root
@@ -119,7 +122,7 @@ proc toNxBitmap*(self: NxNode): NxBitmap =
     nil
 
 proc image*(bitmap: NxBitmap): string =
-  var compressed = bitmap.data.toString
+  var compressed = bitmap.data.toStringNoTermiate
   result = uncompress_frame(compressed)
 
 proc vector*(node: NxNode): NxVector =
@@ -425,11 +428,12 @@ proc newNxBitmap(nx: NxFile, uncompressed_data: string): NxBitmap =
   var
     data = uncompressed_data
     compressed = compress_frame(data, prefs)
-    bytes = compressed.asBytes
+    bytes = compressed.asBytesNoPad
     found = nx.bitmaps.filterIt(it.data == bytes)
   if found.len > 0: return found[0]
   result.new
   result.data = bytes
+  result.length = bytes.len.uint32
   result.png = decodePNG32(uncompressed_data)
   result.width = result.png.width.uint16
   result.height = result.png.height.uint16

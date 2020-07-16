@@ -52,7 +52,7 @@ proc `*`(string: NxString): seq[uint8] =
   result.add(string.data)
 
 proc `*`(bitmap: NxBitmap): seq[uint8] =
-  result.add(bitmap.data.len.uint16.asBytes)
+  result.add(bitmap.length.asBytes)
   result.add(bitmap.data)
 
 proc `*`(audio: NxAudio): seq[uint8] =
@@ -81,6 +81,7 @@ proc writeZeroFillMod(fs: FileStream, by: int) =
     for i in 0..<data.len:
       data[i] = 0
     fs.write(data)
+
 proc save*(nx: NxFile) =
   nx.writer.write(*nx.header)
 
