@@ -37,7 +37,7 @@ type
     children_count*: uint16
     kind*: NxType
     data*: DataBuffer
-  NxData = ref object of NxBaseObj
+  NxData* {.exportc.} = ref object of NxBaseObj
     id*: uint32 #
     data*: seq[uint8]
   NxString* {.exportc.} = ref object of NxData
@@ -225,46 +225,6 @@ proc newNxBitmap*(uncompressed_data: var string): NxBitmap =
   result.width = result.png.width.uint16
   result.height = result.png.height.uint16
 
-# non-dependent bitmap node
-proc newNxNodeBitmap*(nx: NxFile, uncompressed_data: string): NxNode =
-  result = newNxNode(ntBitmap)
-  var data = uncompressed_data
-  let nxb = data.newNxBitmap
-  let nxb_id = nx.bitmaps.len.uint32
-  nx.bitmaps.add(nxb)
-  nxb.id = nxb_id
-  result.relative = nxb
-  var count = 0
-  for b in nxb_id.asBytes:
-    result.data[count] = b
-    count.inc(1)
-  for b in nxb.width.asBytes:
-    result.data[count] = b
-    count.inc(1)
-  for b in nxb.height.asBytes:
-    result.data[count] = b
-    count.inc(1)
-
-proc newNxAudio*(sound_data: string): NxAudio =
-  result.new
-  for c in sound_data:
-    result.data.add(c.uint8)
-
-proc newNxNodeAudio*(nx: NxFile, sound_data: string): NxNode =
-  result = newNxNode(ntAudio)
-  let nxa = sound_data.newNxAudio
-  let nxa_id = nx.audios.len.uint32
-  nx.audios.add(nxa)
-  nxa.id = nxa_id
-  result.relative = nxa
-  var count = 0
-  for b in nxa_id.asBytes:
-    result.data[count] = b
-    count.inc(1)
-  for b in sound_data.len.uint32.asBytes:
-    result.data[count] = b
-    count.inc(1)
-
 proc toNxType*(i: uint16): NxType =
   case i:
   of 1: ntInt
@@ -279,9 +239,7 @@ proc decode*(bitmap: NxBitmap) =
   var data = bitmap.data.toString
   bitmap.png = decodePNG32(data.uncompress_frame)
 
-
 proc addStringNode*(parent: NxNode, s: string): NxNode
-
 
 proc baseNode*(nx: NxFile): NxNode =
   result = nx.nodes[0]

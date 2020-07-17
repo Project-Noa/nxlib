@@ -160,4 +160,3 @@ proc newNxFile*(filename: string): NxFile =
   let base = newNxNone()
   result.addNode(base)
   base.setName("")
-  

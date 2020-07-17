@@ -2,7 +2,10 @@
 # exports the main API in this file. Note that you cannot rename this file
 # but you can remove it if you wish.
 
-import nxlib/[node, util, read, write, sugar, compat]
+import nxlib/[node, util, read, write, sugar]
+
+when defined(exportClib):
+  import nxlib/compat
 
 import nimpng
 
@@ -55,4 +58,7 @@ when isMainModule:
   echo "nx library has been loaded"
   # dbg()
 
-export node, read, write, util, sugar, compat
+export node, read, write, util, sugar
+
+when defined(exportClib):
+  export compat

@@ -44,6 +44,7 @@ proc i64*(arr: var seq[uint8]): int64 =
 proc f64*(arr: var seq[uint8]): float64 =
   result = convert[float64](arr)
 
+# expected **no** null between characters.
 proc toString*(self: seq[uint8]): string =
   result = ""
   for byte in self.filterIt(it != 0):

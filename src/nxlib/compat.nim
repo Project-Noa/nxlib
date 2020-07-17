@@ -1,13 +1,55 @@
-import read, node, util
+import read, node, util, sugar
+import strutils
 
 proc nxOpen*(filename: cstring): NxFile {.exportc, cdecl.} =
   result = ($filename).openNxFile()
 
-proc nxGetId*(node: NxNode): cint {.exportc, cdecl.} =
+proc nxGetNodes*(nx: NxFile): seq[NxNode] {.exportc, cdecl.} =
+  result = nx.nodes
+
+proc nxGetStringTable*(nx: NxFile): seq[NxString] {.exportc, cdecl.} =
+  result = nx.strings
+
+proc nxGetBitmapTable*(nx: NxFile): seq[NxBitmap] {.exportc, cdecl.} =
+  result = nx.bitmaps
+
+proc nxGetAudioTable*(nx: NxFile): seq[NxAudio] {.exportc, cdecl.} =
+  result = nx.audios
+
+proc nxGetNodeId*(node: NxNode): cint {.exportc, cdecl.} =
   result = node.id.cint
 
-proc nxGetNodes*(file: NxFile): seq[NxNode] {.exportc, cdecl.} =
-  result = file.nodes
+proc nxGetDataId*(data: NxData): cint {.exportc, cdecl.} =
+  result = data.id.cint
+
+proc nxGetDataLen*(data: NxData): cint {.exportc, cdecl.} =
+  result = data.data.len.cint
+
+proc nxGetDataPrintString(nxs: NxString, until: cint, suffix: cstring): cstring {.exportc, cdecl.} =
+  result = if nxs.toString.len > until:
+    nxs.toString[0..until].cstring
+  else:
+    nxs.toString.cstring
+
+proc nxGetDataPrintBitmap(nxb: NxBitmap, until: cint, suffix: cstring): cstring {.exportc, cdecl.} =
+  var print = newSeq[string]()
+  let bytes = nxb.data
+  for i, byte in bytes:
+    if i >= until:
+      print.add($suffix)
+      break
+    print.add(byte.toHex)
+  return print.join(", ").cstring
+
+proc nxGetDataPrintAudio*(nxa: NxAudio, until: cint, suffix: cstring): cstring {.exportc, cdecl.} =
+  var print = newSeq[string]()
+  let bytes = nxa.data
+  for i, byte in bytes:
+    if i >= until:
+      print.add($suffix)
+      break
+    print.add(byte.toHex)
+  return print.join(", ").cstring
 
 proc nxGetChildNodes*(node: NxNode): seq[NxNode] {.exportc, cdecl.} =
   result = node.children
@@ -24,7 +66,7 @@ proc nxGetTypeString*(node: NxNode): cstring {.exportc, cdecl.} =
 proc nxGetString*(node: NxNode): cstring {.exportc, cdecl.} =
   result = node.toString
 
-proc nxGetDataId*(node: NxNode): cint {.exportc, cdecl.} =
+proc nxGetRelativeId*(node: NxNode): cint {.exportc, cdecl.} =
   result = node.data_id.cint
 
 proc nxGetData*(node: NxNode): seq[uint8] {.exportc, cdecl.} =
@@ -39,3 +81,11 @@ proc nxGetData*(node: NxNode): seq[uint8] {.exportc, cdecl.} =
       return node.relative.data
   return @[]
 
+proc nxGetDataDirectly*(data: NxData): seq[uint8] =
+  result = data.data
+
+proc nxGetParent*(node: NxNode): NxNode {.exportc, cdecl.} =
+  result = node.parent
+
+proc nxGetNamedChild*(node: NxNode, name: cstring): NxNode {.exportc, cdecl.} =
+  result = node[$name]

@@ -183,7 +183,7 @@ proc openNxFile*(path: string): NxFile =
     of ntAudio:
       node.relative = result.audios[node.data_id]
     else: discard
-    
+
     if node.children_count > 0:
       let last = node.first_child_id + node.children_count
       # echo node.first_child_id, " ~ ", last
@@ -191,3 +191,10 @@ proc openNxFile*(path: string): NxFile =
       assert node.children_count == node.children.len.uint, "wrong children count (" & $node.children_count & "|" & $node.children.len & ")"
       for child in node.children:
         child.parent = node
+
+  for i, string in result.strings:
+    string.id = i.uint32
+  for i, bitmap in result.bitmaps:
+    bitmap.id = i.uint32
+  for i, audio in result.audios:
+    audio.id = i.uint32
