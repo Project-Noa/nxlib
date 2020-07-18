@@ -5,6 +5,7 @@
 - [x] Create new nodes
 - [x] Remove nodes
 - [x] Convert nodes
+- [x] Write as `.nx` satisfying [NX PKG4](https://nxformat.github.io)
 
 ## Work in progress
 
