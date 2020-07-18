@@ -21,10 +21,21 @@ proc dbg() =
   let c1 = i3.addIntNode(0xDDDDDDDD'i64)
   c1.setName("int3-int")
   
+  # a node of named as "name" now has value of 1 and type to integer.
   i3["name"] = 1
+  # a node of named as "subdir" now has no value and type to none.
   i3 += "subdir"
+  # a node of named as "vector2" now has value of
+  # x is 2, y is 3 and type to two dimentional vector.
   i3["vector2"] = (x: 2, y: 3)
+  # named as "vector2", x is 2, y is 3 and type to two dimentional vector.
   i3["vector"] = [1, 2]
+
+  i1.cvtRealNode(4545.4545)
+  i3["name"].cvtVectorNode(1, 2)
+  i3["vector"].cvtStringNode("from vector")
+
+  i2.detach()
 
   let images = nx.baseNode.addNoneNode("images")
   let png = "./80038746_p0.png".open(fmRead)
@@ -56,7 +67,7 @@ proc dbg() =
 
 when isMainModule: 
   echo "nx library has been loaded"
-  # dbg()
+  dbg()
 
 export node, read, write, util, sugar
 

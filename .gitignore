@@ -1,6 +1,7 @@
 *.nx
 *.dSYM
 *.dylib
+*.a
 
 /nxlib
 /output

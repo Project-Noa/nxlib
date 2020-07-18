@@ -201,7 +201,7 @@ proc newNxVector*(x, y: int32): NxNode =
       v = cast[ptr uint8](addr(y1) + n)
     result.data[n] = v[]
 
-proc indexOf(arr: seq[NxNode], data: NxNode): int =
+proc indexOf[T](arr: seq[T], data: T): int =
   if data.isNil: return -1    
   result = -1
   for index, item in arr:
@@ -214,16 +214,6 @@ proc data_id*(node: NxNode): uint32 =
     node.data.u32
   else:
     0.uint32
-
-proc newNxBitmap*(uncompressed_data: var string): NxBitmap =
-  result.new
-  let compressed = compress_frame(uncompressed_data, prefs)
-  for c in compressed:
-    result.data.add(c.uint8)
-  result.length = result.data.len.uint32
-  result.png = uncompressed_data.decodePNG32()
-  result.width = result.png.width.uint16
-  result.height = result.png.height.uint16
 
 proc toNxType*(i: uint16): NxType =
   case i:
@@ -285,15 +275,17 @@ proc appendChild*(nx: NxFile, parent, child: NxNode) =
 proc detachChild*(nx: NxFile, parent, child: NxNode, with_data: bool = false) =
   let
     abs_index = nx.nodes.indexOf(child)
-    rel_index = parent.children.indexOf(child)
+    rel_index = if parent.isNil: 0 # base node
+    else: parent.children.indexOf(child)
   
   echo "child at: ", abs_index, "rel: ", rel_index
   
   if abs_index >= 0:
-    if child.children.len <= 0:
-      nx.nodes.delete(abs_index)
-    else:
-      nx.nodes.delete(abs_index, abs_index + child.children.len)
+    nx.nodes.delete(abs_index)
+    if child.children.len > 0:
+      let start = child.first_child_id
+      nx.nodes.delete(start, start + child.children.len.uint32)
+      echo child.first_child_id, ", ", start + child.children.len.uint32
   if rel_index >= 0:
     parent.children.delete(rel_index)
 
@@ -441,3 +433,136 @@ proc addAudioNode*(parent: NxNode, data: string): NxNode =
     count.inc(1)
 
   parent.root.appendChild(parent, result)
+
+proc refCount(data: NxData): int =
+  for node in data.root.nodes:
+    if node.relative == data:
+      result.inc
+
+proc setDataId*(node: NxNode, id: uint32, remove_with_relative: bool = false) =
+  case node.kind:
+    of ntString, ntBitmap, ntAudio:
+      var count = 0
+      for b in id.asBytes:
+        node.data[count] = b
+        count.inc
+    else: discard
+
+proc remove(data: NxData) =
+  if data is NxString:
+    let nxs = cast[NxString](data)
+    let index = data.root.strings.indexOf(nxs)
+    for i, node in data.root.nodes:
+      if not node.relative.isNil and node.relative.id > index.uint32:
+        node.setDataId(node.relative.id + 1)
+    data.root.strings.delete(index)
+    for i, string in data.root.strings:
+      string.id = i.uint32
+  elif data is NxBitmap:
+    let nxb = cast[NxBitmap](data)
+    let index = data.root.bitmaps.indexOf(nxb)
+    for i, node in data.root.nodes:
+      if not node.relative.isNil and node.relative.id > index.uint32:
+        node.setDataId(node.relative.id + 1)
+    data.root.bitmaps.delete(index)
+    for i, string in data.root.bitmaps:
+      string.id = i.uint32
+  elif data is NxAudio:
+    let nxa = cast[NxAudio](data)
+    let index = data.root.audios.indexOf(nxa)
+    for i, node in data.root.nodes:
+      if not node.relative.isNil and node.relative.id > index.uint32:
+        node.setDataId(node.relative.id + 1)
+    data.root.audios.delete(index)
+    for i, string in data.root.audios:
+      string.id = i.uint32
+  data.parent = nil
+
+proc cvtNoneNode*(node: NxNode, remove_with_relative: bool = false) =
+  node.kind = ntNone
+  for i in 0..<8:
+    node.data[i] = 0
+  if not node.relative.isNil:
+    if remove_with_relative:
+      node.relative.remove
+    node.relative = nil
+
+proc cvtIntNode*(node: NxNode, value: int64, remove_with_relative: bool = false) =
+  node.kind = ntInt
+  var count = 0
+  for b in value.asBytes:
+    node.data[count] = b
+    count.inc
+  if not node.relative.isNil:
+    if remove_with_relative:
+      node.relative.remove
+    node.relative = nil
+
+proc cvtRealNode*(node: NxNode, value: float64, remove_with_relative: bool = false) =
+  node.kind = ntReal
+  var count = 0
+  for b in value.asBytes:
+    node.data[count] = b
+    count.inc
+  if not node.relative.isNil:
+    if remove_with_relative:
+      node.relative.remove
+    node.relative = nil
+
+proc cvtVectorNode*(node: NxNode, x, y: int32, remove_with_relative: bool = false) =
+  node.kind = ntVector
+  var count = 0
+  for b in x.asBytes:
+    node.data[count] = b
+    count.inc
+  for b in y.asBytes:
+    node.data[count] = b
+    count.inc
+  if not node.relative.isNil:
+    if remove_with_relative:
+      node.relative.remove
+    node.relative = nil
+
+proc cvtStringNode*(node: NxNode, data: string, remove_with_relative: bool = false) =
+  node.kind = ntString
+
+  if not node.relative.isNil and remove_with_relative:
+    node.relative.remove
+  
+  let nxs = node.root.newNxString(data)
+  node.relative = nxs
+  nxs.parent = node
+  nxs.root = node.root
+  
+  node.setDataId(nxs.id)
+
+proc cvtBitmapNode*(node: NxNode, uncompressed_data: string, remove_with_relative: bool = false) =
+  node.kind = ntBitmap
+
+  if not node.relative.isNil and remove_with_relative:
+    node.relative.remove
+
+  let nxb = node.root.newNxBitmap(uncompressed_data)
+  node.relative = nxb
+  nxb.parent = node
+  nxb.root = node.root
+  
+  node.setDataId(nxb.id)
+
+proc cvtAudioNode*(node: NxNode, audio_data: string, remove_with_relative: bool = false) =
+  node.kind = ntAudio
+
+  if not node.relative.isNil and remove_with_relative:
+    node.relative.remove
+
+  let nxa = node.root.newNxBitmap(audio_data)
+
+  node.relative = nxa
+  nxa.parent = node
+  nxa.root = node.root
+  
+  node.setDataId(nxa.id)
+  var count = 4
+  for b in audio_data.len.uint32.asBytes:
+    node.data[count] = b
+    count.inc

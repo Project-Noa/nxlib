@@ -84,3 +84,6 @@ proc asBytes*(s: string): seq[uint8] =
 
 proc asBytesNoPad*(s: string): seq[uint8] =
   for c in s: result.add(c.uint8)
+
+proc `~`*(s1, s2: string): string =
+  result = s1 & " " & s2
