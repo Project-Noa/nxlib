@@ -65,7 +65,7 @@ proc `[]`*(nx: NxFile, name: string): NxNode =
 proc `[]`*(node: NxNode, name: string): NxNode =
   for i, child in node.children:
     if child.name == name:
-      return node
+      return child
   let n = new NilNode
   n.point = node
   n.expect = name
