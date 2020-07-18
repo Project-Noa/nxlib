@@ -1,4 +1,5 @@
-import node
+import node, util
+import strutils
 
 type
   VectorParameter = tuple
@@ -70,6 +71,13 @@ proc `[]`*(node: NxNode, name: string): NxNode =
   n.point = node
   n.expect = name
   return n
+
+proc `/`*(node: NxNode, path: string): NxNode =
+  result = node
+  for name in path.split('/'):
+    result = result[name]
+    if result is NilNode:
+      raiseAssert name ~ "not found in" ~ path
 
 proc create*(node: NxNode): NxNode =
   if node is NilNode:

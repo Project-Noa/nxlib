@@ -51,7 +51,6 @@ proc dbg() =
   let wav = "./bang.wav".open(fmRead)
   let audio1 = musics.addAudioNode(wav.readAll)
   audio1.setName("bang")
-  
 
   nx.save()
   # ]#
@@ -65,11 +64,11 @@ proc dbg() =
 
   # ]#
 
-when isMainModule: 
-  echo "nx library has been loaded"
-  # dbg()
-
-export node, read, write, util, sugar
-
 when defined(exportClib):
   export compat
+else:
+  when isMainModule: 
+    echo "nx library has been loaded"
+    dbg()
+
+export node, read, write, util, sugar
