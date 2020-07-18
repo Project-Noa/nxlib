@@ -55,15 +55,13 @@ echo "audio len: ", nxa.len
 
 ### Adding child
 
-All nodes can have any children. As you seen before, this library provide simple way of to adding child.
+All nodes can have any type of children. As you seen before, this library provide simple way of to adding child.
 
 ```nim
 nx.base_node.addNoneNode()
 ```
 
 ### Detach child
-
-*it's a TODO api. not implemented*
 
 ```nim
 var some_node: NxNode
@@ -95,9 +93,32 @@ nx.base_node += some_node
 
 It will reset parent and root and id. reassign `nx.nodes`
 
+# Convert
+
+If would you like to change as node different type for, try api below:
+
+## cvtNoneNode(NxNode, bool = false)
+
+First parameter type of `NxNode`, it's a context of procedure. This node will be `None` type and loose all value.
+
+Second parameter is a optional flag for remove relative data when that was a no reference after node converted as new value.
+
+## cvtIntNode(NxNode, int64, bool = false)
+## cvtRealNode(NxNode, float64, bool = false)
+## cvtVectorNode(NxNode, int32, int32, bool = false)
+## cvtStringNode(NxNode, string, bool = false)
+## cvtBitmapNode(NxNode, string, bool = false)
+## cvtAudioNode(NxNode, string, bool = false)
+
+All first parameter type of `NxNode`, it's a context of procedure.
+
+Second parameter will be a new value of node depending on the procedure you choose.
+
+Third parameter is a optional flag for remove relative data when that was a no reference after node converted as new value.
+
 # Get node
 
-It has two ways. first one is *Table (as known as Map, Dictionary or otherlikes)* getter.
+If you want to get a reference of child node from parent node (include base node) it has two ways. first one is *Table (as known as Map, Dictionary or like others)* getter, from `C++`, `ECMAScript`, and `nim` way
 
 At top of `New Node`, you can see like `base["new dir"]` this code.
 
@@ -108,6 +129,8 @@ echo ival.toString # print -> 45
 echo ival.name # print "ivalue"
 ```
 
+But there are no restrictions on the same name that exist at the same level in `.nx` specification. Therefore, this `[]` procedure returns the reference value with the lowest index.
+
 Second way is use `sequtils` module
 
 ```nim
@@ -115,7 +138,7 @@ import sequtils
 let nodes = new_dir.children.filterIt(it.name == "ivalue")
 ```
 
-Yes. *NX (PKG4)* is possible to exist on same named at the same level. It's useful in those situations.
+It's useful in conflict name finding situations.
 
 # Why every name generate A new node?!
 

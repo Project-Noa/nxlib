@@ -478,38 +478,38 @@ proc remove(data: NxData) =
       string.id = i.uint32
   data.parent = nil
 
-proc cvtNoneNode*(node: NxNode, remove_with_relative: bool = false) =
+proc cvtNoneNode*(node: NxNode, remove_noref_relative: bool = false) =
   node.kind = ntNone
   for i in 0..<8:
     node.data[i] = 0
   if not node.relative.isNil:
-    if remove_with_relative:
+    if remove_noref_relative:
       node.relative.remove
     node.relative = nil
 
-proc cvtIntNode*(node: NxNode, value: int64, remove_with_relative: bool = false) =
+proc cvtIntNode*(node: NxNode, value: int64, remove_noref_relative: bool = false) =
   node.kind = ntInt
   var count = 0
   for b in value.asBytes:
     node.data[count] = b
     count.inc
   if not node.relative.isNil:
-    if remove_with_relative:
+    if remove_noref_relative:
       node.relative.remove
     node.relative = nil
 
-proc cvtRealNode*(node: NxNode, value: float64, remove_with_relative: bool = false) =
+proc cvtRealNode*(node: NxNode, value: float64, remove_noref_relative: bool = false) =
   node.kind = ntReal
   var count = 0
   for b in value.asBytes:
     node.data[count] = b
     count.inc
   if not node.relative.isNil:
-    if remove_with_relative:
+    if remove_noref_relative:
       node.relative.remove
     node.relative = nil
 
-proc cvtVectorNode*(node: NxNode, x, y: int32, remove_with_relative: bool = false) =
+proc cvtVectorNode*(node: NxNode, x, y: int32, remove_noref_relative: bool = false) =
   node.kind = ntVector
   var count = 0
   for b in x.asBytes:
@@ -519,14 +519,14 @@ proc cvtVectorNode*(node: NxNode, x, y: int32, remove_with_relative: bool = fals
     node.data[count] = b
     count.inc
   if not node.relative.isNil:
-    if remove_with_relative:
+    if remove_noref_relative:
       node.relative.remove
     node.relative = nil
 
-proc cvtStringNode*(node: NxNode, data: string, remove_with_relative: bool = false) =
+proc cvtStringNode*(node: NxNode, data: string, remove_noref_relative: bool = false) =
   node.kind = ntString
 
-  if not node.relative.isNil and remove_with_relative:
+  if not node.relative.isNil and remove_noref_relative:
     node.relative.remove
   
   let nxs = node.root.newNxString(data)
@@ -536,10 +536,10 @@ proc cvtStringNode*(node: NxNode, data: string, remove_with_relative: bool = fal
   
   node.setDataId(nxs.id)
 
-proc cvtBitmapNode*(node: NxNode, uncompressed_data: string, remove_with_relative: bool = false) =
+proc cvtBitmapNode*(node: NxNode, uncompressed_data: string, remove_noref_relative: bool = false) =
   node.kind = ntBitmap
 
-  if not node.relative.isNil and remove_with_relative:
+  if not node.relative.isNil and remove_noref_relative:
     node.relative.remove
 
   let nxb = node.root.newNxBitmap(uncompressed_data)
@@ -549,10 +549,10 @@ proc cvtBitmapNode*(node: NxNode, uncompressed_data: string, remove_with_relativ
   
   node.setDataId(nxb.id)
 
-proc cvtAudioNode*(node: NxNode, audio_data: string, remove_with_relative: bool = false) =
+proc cvtAudioNode*(node: NxNode, audio_data: string, remove_noref_relative: bool = false) =
   node.kind = ntAudio
 
-  if not node.relative.isNil and remove_with_relative:
+  if not node.relative.isNil and remove_noref_relative:
     node.relative.remove
 
   let nxa = node.root.newNxBitmap(audio_data)

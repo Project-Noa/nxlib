@@ -67,7 +67,7 @@ proc dbg() =
 
 when isMainModule: 
   echo "nx library has been loaded"
-  dbg()
+  # dbg()
 
 export node, read, write, util, sugar
 
