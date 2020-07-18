@@ -1,3 +1,19 @@
+# Library state
+
+## Completed
+
+- [x] Create new nodes
+- [x] Remove nodes
+- [x] Convert nodes
+
+## Work in progress
+
+- [ ] Compat layer for C library
+
+## Planned
+
+- [ ] Load data for `NxData` dynamically (for memory save)
+
 # nxlib.nim Documentation
 
 # New Node
