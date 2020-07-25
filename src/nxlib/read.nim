@@ -57,37 +57,32 @@ proc readNodes*(fs: Stream, root: var NxFile, count: SomeInteger): seq[NxNode] =
   for i in 0..<count:
     result.add(fs.readNode(i, root))
 
-proc readString(fs: Stream, root: var NxFile, length: uint16): NxString =
+proc readString(fs: Stream, root: var NxFile): NxString =
   result.new
   result.root = root
-  result.length = length
-  result.data = newSeq[uint8](length)
-  if length > 0:
-    discard fs.readData(addr result.data[0], length.int)
+  result.length = fs.readUint16
+  if result.length mod 2 == 1: result.length.inc(1)
+  result.data = newSeq[uint8](result.length)
+  if result.length > 0:
+    discard fs.readData(addr result.data[0], result.length.int)
 
-proc readStringNodes*(fs: Stream, root: var NxFile, count: SomeInteger): seq[NxString] =
-  for i in 0..<count:
-    var length = fs.readUint16
-    if length mod 2 == 1: length.inc(1)
-    # if length > 0:
-    let node = fs.readString(root, length)
-    result.add(node)
-      # f.writeLine fs.getPosition, ": ", node.toString
-      # echo fs.getPosition, ": ", node.toString, " (", i, "/", count - 1, ")"
+proc readStringNodes*(fs: Stream, root: var NxFile): seq[NxString] =
+  for offset in root.string_offsets:
+    fs.setPosition(offset.int)
+    result.add(fs.readString(root))
 
-proc readBitmap(fs: Stream, root: var NxFile, length: uint32): NxBitmap =
+proc readBitmap(fs: Stream, root: var NxFile): NxBitmap =
   result.new
   result.root = root
-  result.length = length
+  result.length = fs.readUint32
   result.data = @[]
-  result.data.setLen(length)
-  discard fs.readData(addr(result.data[0]), length.int)
+  result.data.setLen(result.length)
+  discard fs.readData(addr(result.data[0]), result.length.int)
 
-proc readBitmapNodes*(fs: Stream, root: var NxFile, count: SomeInteger): seq[NxBitmap] =
-  for i in 0..<count:
-    let length = fs.readUint32
-    if length > 0:
-      result.add(fs.readBitmap(root, length))
+proc readBitmapNodes*(fs: Stream, root: var NxFile): seq[NxBitmap] =
+  for offset in root.bitmap_offsets:
+    fs.setPosition(offset.int)
+    result.add(fs.readBitmap(root))
 
 proc readAudio(fs: Stream, root: var NxFile, length: uint32): NxAudio =
   result.new
@@ -109,8 +104,8 @@ proc setPosFromOffset(fs: Stream, offset: uint64) =
 proc skip(fs: Stream, count: SomeUnsignedInt) =
   fs.setPosition(fs.getPosition + count)
 
-proc readOffsetTable(fs: Stream, offset: int, count: SomeInteger): seq[uint64] =
-  fs.setPosition(offset)
+proc readOffsetTable(fs: Stream, offset, count: SomeInteger): seq[uint64] =
+  fs.setPosition(offset.int)
   for i in 0..<count:
     result.add(fs.readUint64)
 
@@ -119,7 +114,7 @@ proc openNxFile*(path: string): NxFile =
   
   result.length = path.getFileLength()
 
-  when defined(exportLib):
+  when defined(useFileStreamOnly):
     let fs = path.newFileStream(fmRead)
   else:
     let fs = path.newMemMapFileStream(fmRead)
@@ -135,45 +130,31 @@ proc openNxFile*(path: string): NxFile =
 
   # set to string table offset
   let string_offset = result.header.string_offset
-
   if string_offset > NODE_OFFSET:
     let string_count = result.header.string_count
-    result.string_offsets = fs.readOffsetTable(string_offset.int, string_count)
-
-    fs.setPosFromOffset(string_offset)
+    result.string_offsets = fs.readOffsetTable(string_offset, string_count)
 
     if string_count > 0:
-      result.strings = fs.readStringNodes(result, string_count)
-    # else:
-    #   fs.skip(2)
-  # else:
-  #   fs.skip(2)
+      result.strings = fs.readStringNodes(result)
 
   let bitmap_offset = result.header.bitmap_offset
   if bitmap_offset > NODE_OFFSET:
     let bitmap_count = result.header.bitmap_count
-    result.bitmap_offsets = fs.readOffsetTable(bitmap_offset.int, bitmap_count)
-
-    fs.setPosFromOffset(bitmap_offset)
+    result.bitmap_offsets = fs.readOffsetTable(bitmap_offset, bitmap_count)
 
     if bitmap_count > 0:
-      result.bitmaps = fs.readBitmapNodes(result, bitmap_count)
-    # else:
-    #   fs.skip(4)
-  # else:
-  #   fs.skip(4)
+      result.bitmaps = fs.readBitmapNodes(result)
 
   let audio_offset = result.header.audio_offset
   if audio_offset > NODE_OFFSET:
     let audio_count = result.header.audio_count
-    result.bitmap_offsets = fs.readOffsetTable(audio_offset.int, audio_count)
+    result.bitmap_offsets = fs.readOffsetTable(audio_offset, audio_count)
 
     fs.setPosFromOffset(result.header.audio_offset)
     if audio_count > 0:
       let audio_nodes = result.nodes.filterIt(it.kind == ntAudio)
       result.audios = fs.readAudioNodes(result, audio_nodes)
-  # echo "start node children parse"
-  # echo result.nodes.len
+
   for node in result.nodes:
     case node.kind:
     of ntString:
@@ -186,7 +167,6 @@ proc openNxFile*(path: string): NxFile =
 
     if node.children_count > 0:
       let last = node.first_child_id + node.children_count
-      # echo node.first_child_id, " ~ ", last
       node.children = result.nodes[node.first_child_id..<last]
       assert node.children_count == node.children.len.uint, "wrong children count (" & $node.children_count & "|" & $node.children.len & ")"
       for child in node.children:

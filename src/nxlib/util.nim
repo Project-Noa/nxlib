@@ -8,40 +8,40 @@ import sequtils
 type
   DataBuffer* = ptr array[8, uint8]
 
-proc convert*[A](arr: var DataBuffer): A =
+proc convert*[A](arr: DataBuffer): A =
   result = cast[ptr A](arr)[]
 
-proc u32*(arr: var DataBuffer): uint32 =
+proc u32*(arr: DataBuffer): uint32 =
   result = convert[uint32](arr)
 
-proc i32*(arr: var DataBuffer): int32 =
+proc i32*(arr: DataBuffer): int32 =
   result = convert[int32](arr)
 
-proc i64*(arr: var DataBuffer): int64 =
+proc i64*(arr: DataBuffer): int64 =
   result = convert[int64](arr)
 
-proc f64*(arr: var DataBuffer): float64 =
+proc f64*(arr: DataBuffer): float64 =
   result = convert[float64](arr)
 
-proc convert*[A](arr: var seq[uint8]): A =
-  result = cast[ptr A](arr)[]
+proc convert*[A](arr: seq[uint8]): A =
+  result = cast[ptr A](unsafeAddr arr[0])[]
 
-proc u16*(arr: var seq[uint8]): uint16 =
-  result = cast[uint16](arr)
+proc u16*(arr: seq[uint8]): uint16 =
+  result = convert[uint16](arr)
 
-proc i16*(arr: var seq[uint8]): int16 =
-  result = cast[int16](arr)
+proc i16*(arr: seq[uint8]): int16 =
+  result = convert[int16](arr)
 
-proc u32*(arr: var seq[uint8]): uint32 =
+proc u32*(arr: seq[uint8]): uint32 =
   result = convert[uint32](arr)
 
-proc i32*(arr: var seq[uint8]): int32 =
+proc i32*(arr: seq[uint8]): int32 =
   result = convert[int32](arr)
 
-proc i64*(arr: var seq[uint8]): int64 =
+proc i64*(arr: seq[uint8]): int64 =
   result = convert[int64](arr)
 
-proc f64*(arr: var seq[uint8]): float64 =
+proc f64*(arr: seq[uint8]): float64 =
   result = convert[float64](arr)
 
 # expected **no** null between characters.

@@ -1,4 +1,4 @@
-#!/usr/bin/env sh\
+#!/usr/bin/env sh
 
 if [ -f "nxlib" ] ; then
   rm nxlib
