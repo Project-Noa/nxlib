@@ -89,3 +89,6 @@ proc nxGetParent*(node: NxNode): NxNode {.exportc, cdecl.} =
 
 proc nxGetNamedChild*(node: NxNode, name: cstring): NxNode {.exportc, cdecl.} =
   result = node[$name]
+
+proc nxGetRelative *(nx:NxBaseObj): NxBaseObj {.exportc, cdecl.}=
+  result = nx.relative
