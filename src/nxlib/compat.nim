@@ -57,6 +57,9 @@ proc nxGetChildNodes*(node: NxNode): seq[NxNode] {.exportc, cdecl.} =
 proc nxGetName*(node: NxNode): cstring {.exportc, cdecl.} =
   result = node.getName.cstring
 
+proc nxSetName*(node: NxNode, new_name: cstring) {.exportc, cdecl.} =
+  node.name = $new_name;
+
 proc nxGetType*(node: NxNode): cint {.exportc, cdecl.} =
   result = node.kind.ord.cint
 
@@ -101,3 +104,35 @@ proc nxGetBitmapLength*(nxb: NxBitmap): cint {.exportc, cdecl.} =
 
 proc nxDecodeBitmap*(nxb: NxBitmap): seq[uint8] {.exportc, cdecl.} =
   result = nxb.image.asBytes
+
+proc nxConvertToNone*(node: NxNode) {.exportc, cdecl.} =
+  node.cvtNoneNode()
+
+proc nxConvertToInt*(node: NxNode, i: int64) {.exportc, cdecl.} =
+  node.cvtIntNode(i)
+
+proc nxConvertToReal*(node: NxNode, f: float64) {.exportc, cdecl.} =
+  node.cvtRealNode(f)
+
+proc nxConvertToVector*(node: NxNode, x: int32, y: int32) {.exportc, cdecl.} =
+  node.cvtVectorNode(x, y)
+
+proc nxConvertToString*(node: NxNode, str: cstring) {.exportc, cdecl.} =
+  node.cvtStringNode($str)
+
+proc nxConvertToBitmap*(node: NxNode, data: cstring, is_path: bool = false) {.exportc, cdecl.} =
+  let buf = if is_path:
+    ($data).open(fmRead).readAll
+  else:
+    $data
+  
+  node.cvtBitmapNode(buf)
+
+proc nxConvertToAudio*(node: NxNode, data: cstring, is_path: bool = false) {.exportc, cdecl.} =
+  let buf = if is_path:
+    ($data).open(fmRead).readAll
+  else:
+    $data
+  
+  node.cvtAudioNode(buf)
+
