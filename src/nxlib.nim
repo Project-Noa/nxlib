@@ -44,8 +44,8 @@ proc dbg() =
   let image1 = images.addBitmapNode(data)
   image1.setName("g11")
   let bitmap = cast[NxBitmap](image1.relative)
-  echo bitmap.length
-  echo bitmap.image.len
+  echo "compressed lenght: ", bitmap.length
+  echo "real length: ", bitmap.image.len
   
   let musics = nx.baseNode.addNoneNode("musics")
   let wav = "./bang.wav".open(fmRead)

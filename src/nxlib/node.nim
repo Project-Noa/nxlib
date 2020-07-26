@@ -45,8 +45,8 @@ type
   NxBitmap* {.exportc.} = ref object of NxData
     length*: uint32
     png*: PngResult[string]
-    width: uint16 #
-    height: uint16 #
+    width*: uint16 #
+    height*: uint16 #
   NxAudio* {.exportc.} = ref object of NxData
   NxHeader* {.exportc.} = ref object of NxBaseObj
     magic*: string
@@ -145,13 +145,9 @@ proc toString*(nxs: NxString): string =
   result = nxs.data.toString
 
 proc size*(bitmap: NxBitmap): NxBitmapSize =
-  var
-    xbuf = bitmap.data[4..5]
-    ybuf = bitmap.data[6..7]
-    x = xbuf.u16
-    y = ybuf.u16
-  
-  result = (x, y)
+  if bitmap.png.isNil:
+    bitmap.png = decodePNG32(bitmap.image)
+  result = (bitmap.png.width.uint16, bitmap.png.height.uint16)
 
 proc newNxHeader*(nx: NxFile): NxHeader =
   result.new
@@ -224,10 +220,6 @@ proc toNxType*(i: uint16): NxType =
   of 5: ntBitmap
   of 6: ntAudio
   else: ntNone
-
-proc decode*(bitmap: NxBitmap) =
-  var data = bitmap.data.toString
-  bitmap.png = decodePNG32(data.uncompress_frame)
 
 proc addStringNode*(parent: NxNode, s: string): NxNode
 
@@ -375,16 +367,13 @@ proc addBitmap(nx: NxFile, nxb: NxBitmap) =
   nx.bitmaps.add(nxb)
 
 proc newNxBitmap(nx: NxFile, uncompressed_data: string): NxBitmap =
-  var
-    data = uncompressed_data
-    compressed = compress_frame(data, prefs)
-    bytes = compressed.asBytesNoPad
-    found = nx.bitmaps.filterIt(it.data == bytes)
-  if found.len > 0: return found[0]
   result.new
-  result.data = bytes
-  result.length = bytes.len.uint32
   result.png = decodePNG32(uncompressed_data)
+  var
+    data = result.png.data
+    compressed = compress_frame(data, prefs)
+  result.data = compressed.asBytes
+  result.length = result.data.len.uint32
   result.width = result.png.width.uint16
   result.height = result.png.height.uint16
   nx.addBitmap(result)

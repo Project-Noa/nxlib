@@ -52,7 +52,7 @@ proc `*`(string: NxString): seq[uint8] =
   result.add(string.data)
 
 proc `*`(bitmap: NxBitmap): seq[uint8] =
-  result.add(bitmap.length.asBytes)
+  result.add(bitmap.data.len.uint32.asBytes)
   result.add(bitmap.data)
 
 proc `*`(audio: NxAudio): seq[uint8] =

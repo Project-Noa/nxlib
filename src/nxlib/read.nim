@@ -109,6 +109,32 @@ proc readOffsetTable(fs: Stream, offset, count: SomeInteger): seq[uint64] =
   for i in 0..<count:
     result.add(fs.readUint64)
 
+proc readStrings(nx: var NxFile) =
+  let string_offset = nx.header.string_offset
+  let string_count = nx.header.string_count
+  nx.string_offsets = nx.file.readOffsetTable(string_offset, string_count)
+
+  if string_count > 0:
+    nx.strings = nx.file.readStringNodes(nx)
+
+proc readBitmaps(nx: var NxFile) =
+  let bitmap_offset = nx.header.bitmap_offset
+  let bitmap_count = nx.header.bitmap_count
+  nx.bitmap_offsets = nx.file.readOffsetTable(bitmap_offset, bitmap_count)
+
+  if bitmap_count > 0:
+    nx.bitmaps = nx.file.readBitmapNodes(nx)
+
+proc readAudios(nx: var NxFile) =
+  let audio_offset = nx.header.audio_offset
+  let audio_count = nx.header.audio_count
+  nx.bitmap_offsets = nx.file.readOffsetTable(audio_offset, audio_count)
+
+  nx.file.setPosFromOffset(nx.header.audio_offset)
+  if audio_count > 0:
+    let audio_nodes = nx.nodes.filterIt(it.kind == ntAudio)
+    nx.audios = nx.file.readAudioNodes(nx, audio_nodes)
+
 proc openNxFile*(path: string): NxFile =
   result.new
   
@@ -128,41 +154,30 @@ proc openNxFile*(path: string): NxFile =
   let node_count = result.header.node_count
   result.nodes = fs.readNodes(result, node_count)
 
-  # set to string table offset
-  let string_offset = result.header.string_offset
-  if string_offset > NODE_OFFSET:
-    let string_count = result.header.string_count
-    result.string_offsets = fs.readOffsetTable(string_offset, string_count)
+  if result.header.string_count > 0:
+    result.readStrings()
 
-    if string_count > 0:
-      result.strings = fs.readStringNodes(result)
+  if result.header.bitmap_count > 0:
+    result.readBitmaps()
 
-  let bitmap_offset = result.header.bitmap_offset
-  if bitmap_offset > NODE_OFFSET:
-    let bitmap_count = result.header.bitmap_count
-    result.bitmap_offsets = fs.readOffsetTable(bitmap_offset, bitmap_count)
-
-    if bitmap_count > 0:
-      result.bitmaps = fs.readBitmapNodes(result)
-
-  let audio_offset = result.header.audio_offset
-  if audio_offset > NODE_OFFSET:
-    let audio_count = result.header.audio_count
-    result.bitmap_offsets = fs.readOffsetTable(audio_offset, audio_count)
-
-    fs.setPosFromOffset(result.header.audio_offset)
-    if audio_count > 0:
-      let audio_nodes = result.nodes.filterIt(it.kind == ntAudio)
-      result.audios = fs.readAudioNodes(result, audio_nodes)
+  if result.header.audio_count > 0:
+    result.readAudios()
 
   for node in result.nodes:
+    var data = node.data
+    let id = node.data_id
     case node.kind:
     of ntString:
-      node.relative = result.strings[node.data_id]
+      node.relative = result.strings[id]
     of ntBitmap:
-      node.relative = result.bitmaps[node.data_id]
+      echo data[0..7]
+      echo data[4..5]
+      echo data[6..7]
+      node.relative = result.bitmaps[id]
+      result.bitmaps[id].width = data[4..5].u16
+      result.bitmaps[id].height = data[6..7].u16
     of ntAudio:
-      node.relative = result.audios[node.data_id]
+      node.relative = result.audios[id]
     else: discard
 
     if node.children_count > 0:

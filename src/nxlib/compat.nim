@@ -90,5 +90,14 @@ proc nxGetParent*(node: NxNode): NxNode {.exportc, cdecl.} =
 proc nxGetNamedChild*(node: NxNode, name: cstring): NxNode {.exportc, cdecl.} =
   result = node[$name]
 
-proc nxGetRelative *(nx:NxBaseObj): NxBaseObj {.exportc, cdecl.}=
-  result = nx.relative
+proc nxGetRelative*(node: NxNode): NxData {.exportc, cdecl.}=
+  result = node.relative
+
+proc nxGetBitmapSize*(nxb: NxBitmap): tuple[x: cint, y: cint] {.exportc, cdecl.} =
+  result = (nxb.width.cint, nxb.height.cint)
+
+proc nxGetBitmapLength*(nxb: NxBitmap): cint {.exportc, cdecl.} =
+  result = nxb.length.cint
+
+proc nxDecodeBitmap*(nxb: NxBitmap): seq[uint8] {.exportc, cdecl.} =
+  result = nxb.image.asBytes
