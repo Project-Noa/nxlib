@@ -353,6 +353,7 @@ proc addStringNode*(parent: NxNode, s: string): NxNode =
   result = newNxNode(ntString)
   result.relative = nxs
   result.parent = parent
+  result.root = parent.root
 
   var count = 0
   for b in nxs.id.asBytes:
