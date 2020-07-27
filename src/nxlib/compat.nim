@@ -136,3 +136,5 @@ proc nxConvertToAudio*(node: NxNode, data: cstring, is_path: bool = false) {.exp
   
   node.cvtAudioNode(buf)
 
+proc nxAddNoneNode*(parent: NxNode, name: cstring): NxNode {.exportc, cdecl.} =
+  parent.addNoneNode($name)
