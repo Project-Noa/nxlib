@@ -170,9 +170,6 @@ proc openNxFile*(path: string): NxFile =
     of ntString:
       node.relative = result.strings[id]
     of ntBitmap:
-      echo data[0..7]
-      echo data[4..5]
-      echo data[6..7]
       node.relative = result.bitmaps[id]
       result.bitmaps[id].width = data[4..5].u16
       result.bitmaps[id].height = data[6..7].u16

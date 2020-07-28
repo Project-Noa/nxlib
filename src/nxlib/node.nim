@@ -186,16 +186,13 @@ proc newNxVector*(x, y: int32): NxNode =
   result.children_count = 0
   result.kind = ntVector
   result.data = array[8, uint8].create()
-  for n in 0..<4:
-    var 
-      x1 = x
-      v = cast[ptr uint8](addr(x1) + n)
-    result.data[n] = v[]
-  for n in 4..<8:
-    var 
-      y1 = y
-      v = cast[ptr uint8](addr(y1) + n)
-    result.data[n] = v[]
+  var count = 0
+  for b in x.asBytes:
+    result.data[count] = b
+    count.inc
+  for b in y.asBytes:
+    result.data[count] = b
+    count.inc
 
 proc indexOf[T](arr: seq[T], data: T): int =
   if data.isNil: return -1    

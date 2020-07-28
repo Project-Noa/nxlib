@@ -24,7 +24,7 @@ proc f64*(arr: DataBuffer): float64 =
   result = convert[float64](arr)
 
 proc convert*[A](arr: seq[uint8]): A =
-  var tmp = arr
+  var tmp = arr[0..sizeof(A) - 1]
   result = cast[ptr A](addr tmp[0])[]
 
 proc u16*(arr: seq[uint8]): uint16 =
