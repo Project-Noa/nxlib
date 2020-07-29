@@ -299,11 +299,13 @@ proc getName*(node: NxNode): string =
   result = ns.toString
 
 proc setName*(node: NxNode, name: string) =
-  ## let name_node = node.addStringNode(name)
-  # node.name_id = name_node.relative.id
-  # node.root.appendChild(node, name_node)
-  let nxs = newNxString(node.root, name)
-  node.name_id = nxs.id
+  when defined(useNameRefNode):
+    let name_node = node.addStringNode(name)
+    node.name_id = name_node.relative.id
+    node.root.appendChild(node, name_node)
+  else:
+    let nxs = newNxString(node.root, name)
+    node.name_id = nxs.id
 
 proc addNode*(nx: NxFile, node: NxNode) =
   let index = nx.nodes.indexOf(node)

@@ -159,4 +159,4 @@ It's useful in conflict name finding situations.
 
 # Why every name generate A new node?!
 
-I think all data should be linked from nodes and a name (node) should be child of that node what they have named. Perhaps, you can redesign by your way.
+It's not a default now. You can add ref name node with `-d:useNameRefNode` at the build time.
