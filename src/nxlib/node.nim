@@ -76,6 +76,7 @@ proc toNxString*(self: NxNode): NxString
 proc `==`*(kind: NxType, i: SomeInteger): bool = kind.ord == i
 proc `!=`*(kind: NxType, i: SomeInteger): bool = kind.ord != i
 proc vector*(node: NxNode): NxVector
+proc newNxString(nx: NxFile, s: string): NxString
 
 proc toInt*(self: NxNode, default: int64 = 0): int64 =
   result = case self.kind:
@@ -237,27 +238,27 @@ proc updateChildId(node: NxNode) =
 
 proc appendChild*(nx: NxFile, parent, child: NxNode) =
   child.root = nx
-  # = parent.root
-
+  assert parent.children.filterIt(it == child).len <= 0
   child.parent = parent
 
-  if parent.first_child_id <= 0:
+  let isParentHasNoChildren = parent.first_child_id <= 0
+
+  if isParentHasNoChildren:
     nx.appendNode(child)
-    parent.first_child_id = child.id
   else:
-    let last_child_id = parent.first_child_id + parent.children_count - 1
+    let last_child_id = parent.first_child_id + parent.children.len.uint32 - 1
     var new_nodes = newSeq[NxNode]()
     new_nodes.add(nx.nodes[0..<last_child_id])
     new_nodes.add(child)
     new_nodes.add(nx.nodes[last_child_id..<nx.nodes.len])
-    # update node id
-    for i, node in new_nodes:
-      node.id = i.uint32
-    # update child id
-    for node in new_nodes:
-      node.updateChildId
     nx.nodes = new_nodes
-    
+  
+  for i,node in nx.nodes:
+    node.id = i.uint32
+
+  for node in nx.nodes:
+    node.updateChildId
+
   parent.children.add(child)
   parent.children_count = parent.children.len.uint16
 
@@ -298,9 +299,11 @@ proc getName*(node: NxNode): string =
   result = ns.toString
 
 proc setName*(node: NxNode, name: string) =
-  let name_node = node.addStringNode(name)
-  node.name_id = name_node.relative.id
-  node.root.appendChild(node, name_node)
+  ## let name_node = node.addStringNode(name)
+  # node.name_id = name_node.relative.id
+  # node.root.appendChild(node, name_node)
+  let nxs = newNxString(node.root, name)
+  node.name_id = nxs.id
 
 proc addNode*(nx: NxFile, node: NxNode) =
   let index = nx.nodes.indexOf(node)
@@ -347,6 +350,8 @@ proc newNxString(nx: NxFile, s: string): NxString =
 
 proc addStringNode*(parent: NxNode, s: string): NxNode =
   let nxs = parent.root.newNxString(s)
+
+  echo "add string into [", parent.id, "] string: ", s
   result = newNxNode(ntString)
   result.relative = nxs
   result.parent = parent
