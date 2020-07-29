@@ -186,8 +186,8 @@ proc openNxFile*(path: string): NxFile =
 
     if node.children_count > 0:
       let last = node.first_child_id + node.children_count
-      echo "node id: ", node.id, " name: ", node.getName
       node.children = result.nodes[node.first_child_id..<last]
+      assert node.children_count == node.children.len.uint, "wrong children count (" & $node.children_count & "|" & $node.children.len & ")"
       for child in node.children:
         child.parent = node
       for child in node.children:
