@@ -190,6 +190,3 @@ proc openNxFile*(path: string): NxFile =
       assert node.children_count == node.children.len.uint, "wrong children count (" & $node.children_count & "|" & $node.children.len & ")"
       for child in node.children:
         child.parent = node
-      for child in node.children:
-        echo child.id, ", ", child.getName
-      # assert node.children_count == node.children.len.uint, "wrong children count (" & $node.children_count & "|" & $node.children.len & ")"
