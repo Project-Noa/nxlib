@@ -40,7 +40,7 @@ proc `[]=`*(parent: NxNode, child_name: string, v: VectorParameter) =
   let node = parent.addVectorNode(v.x.int32, v.y.int32)
   node.setName(child_name)
 
-proc `[]=`*(parent: NxNode, child_name: string, s: string) =
+proc `[]=`*(parent: NxNode, child_name, s: string) =
   let node = parent.addStringNode(s)
   node.setName(child_name)
 

@@ -240,8 +240,6 @@ proc appendChild*(nx: NxFile, parent, child: NxNode) =
   # = parent.root
 
   child.parent = parent
-  parent.children.add(child)
-  parent.children_count = parent.children.len.uint16
 
   if parent.first_child_id <= 0:
     nx.appendNode(child)
@@ -260,6 +258,8 @@ proc appendChild*(nx: NxFile, parent, child: NxNode) =
       node.updateChildId
     nx.nodes = new_nodes
     
+  parent.children.add(child)
+  parent.children_count = parent.children.len.uint16
 
 proc detachChild*(nx: NxFile, parent, child: NxNode, with_data: bool = false) =
   let
@@ -356,6 +356,8 @@ proc addStringNode*(parent: NxNode, s: string): NxNode =
   for b in nxs.id.asBytes:
     result.data[count] = b
     count.inc(1)
+
+  parent.root.appendChild(parent, result)
 
 proc newBitmapId(nx: NxFile): uint32 =
   result = nx.bitmaps.len.uint32
