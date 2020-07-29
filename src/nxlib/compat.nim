@@ -76,7 +76,6 @@ proc nxGetData*(node: NxNode): seq[uint8] {.exportc, cdecl.} =
   if not node.relative.isNil:
     if node.kind == ntBitmap:
       let bitmap = cast[NxBitmap](node.relative)
-      echo bitmap.length, ", ", bitmap.data.len
       let image = bitmap.image
       let b = image.asBytes
       return b

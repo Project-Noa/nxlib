@@ -1,4 +1,4 @@
-import memfiles, streams, strutils, sequtils
+import memfiles, streams, strutils, sequtils, algorithm
 import nimlz4, nimpng
 import util, compress
 
@@ -77,6 +77,7 @@ proc `==`*(kind: NxType, i: SomeInteger): bool = kind.ord == i
 proc `!=`*(kind: NxType, i: SomeInteger): bool = kind.ord != i
 proc vector*(node: NxNode): NxVector
 proc newNxString(nx: NxFile, s: string): NxString
+proc getName*(node: NxNode): string
 
 proc toInt*(self: NxNode, default: int64 = 0): int64 =
   result = case self.kind:
@@ -232,9 +233,13 @@ proc appendNode(nx: NxFile, node: NxNode) =
   node.id = id
   nx.nodes.add(node)
 
+proc sortChild(a, b: NxNode): int =
+  return a.id.int - b.id.int
+
 proc updateChildId(node: NxNode) =
   if node.children.len > 0:
     node.first_child_id = node.children[0].id
+    node.children.sort(sortChild)
 
 proc appendChild*(nx: NxFile, parent, child: NxNode) =
   child.root = nx
@@ -243,10 +248,14 @@ proc appendChild*(nx: NxFile, parent, child: NxNode) =
 
   let isParentHasNoChildren = parent.first_child_id <= 0
 
+  let prev = parent.children.len.uint32
+  parent.children.add(child)
+  parent.children_count = parent.children.len.uint16
+
   if isParentHasNoChildren:
     nx.appendNode(child)
   else:
-    let last_child_id = parent.first_child_id + parent.children.len.uint32 - 1
+    let last_child_id = parent.first_child_id + prev - 1
     var new_nodes = newSeq[NxNode]()
     new_nodes.add(nx.nodes[0..<last_child_id])
     new_nodes.add(child)
@@ -258,9 +267,6 @@ proc appendChild*(nx: NxFile, parent, child: NxNode) =
 
   for node in nx.nodes:
     node.updateChildId
-
-  parent.children.add(child)
-  parent.children_count = parent.children.len.uint16
 
 proc detachChild*(nx: NxFile, parent, child: NxNode, with_data: bool = false) =
   let
@@ -353,7 +359,6 @@ proc newNxString(nx: NxFile, s: string): NxString =
 proc addStringNode*(parent: NxNode, s: string): NxNode =
   let nxs = parent.root.newNxString(s)
 
-  echo "add string into [", parent.id, "] string: ", s
   result = newNxNode(ntString)
   result.relative = nxs
   result.parent = parent

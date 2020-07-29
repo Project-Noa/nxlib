@@ -41,18 +41,6 @@ proc readNode(fs: Stream, id: SomeOrdinal, root: var NxFile): NxNode =
   result.data = array[8, uint8].create()
   discard fs.readData(result.data, 8)
 
-  #[
-  echo "-------- [ node start (", id, ") ] --------"
-  echo "name id: ", result.name_id
-  echo "first child id: ", result.first_child_id
-  echo "children count: ", result.children_count
-  echo "type: ", result.kind
-  var buf = newSeq[uint8](8)
-  for i in 0..<sizeof(result.data[]):
-    buf[i] = result.data[i]
-  echo "raw data: ", buf
-  # ]#
-
 proc readNodes*(fs: Stream, root: var NxFile, count: SomeInteger): seq[NxNode] =
   for i in 0..<count:
     result.add(fs.readNode(i, root))
