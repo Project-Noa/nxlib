@@ -1,8 +1,14 @@
-import read, node, util, sugar
+import read, write, node, util, sugar
 import strutils
 
 proc nxOpen*(filename: cstring): NxFile {.exportc, cdecl.} =
   result = ($filename).openNxFile()
+
+proc nxSave*(nx: NxFile) {.exportc, cdecl.} =
+  nx.save()
+
+proc nxSaveAs*(nx: NxFile, path: cstring) {.exportc, cdecl.} =
+  discard
 
 proc nxGetNodes*(nx: NxFile): seq[NxNode] {.exportc, cdecl.} =
   result = nx.nodes
@@ -25,13 +31,13 @@ proc nxGetDataId*(data: NxData): cint {.exportc, cdecl.} =
 proc nxGetDataLen*(data: NxData): cint {.exportc, cdecl.} =
   result = data.data.len.cint
 
-proc nxGetDataPrintString(nxs: NxString, until: cint, suffix: cstring): cstring {.exportc, cdecl.} =
+proc nxGetDataPrintString*(nxs: NxString, until: cint, suffix: cstring): cstring {.exportc, cdecl.} =
   result = if nxs.toString.len > until:
     nxs.toString[0..until].cstring
   else:
     nxs.toString.cstring
 
-proc nxGetDataPrintBitmap(nxb: NxBitmap, until: cint, suffix: cstring): cstring {.exportc, cdecl.} =
+proc nxGetDataPrintBitmap*(nxb: NxBitmap, until: cint, suffix: cstring): cstring {.exportc, cdecl.} =
   var print = newSeq[string]()
   let bytes = nxb.data
   for i, byte in bytes:
@@ -127,6 +133,9 @@ proc nxConvertToBitmap*(node: NxNode, data: cstring, is_path: bool = false) {.ex
   
   node.cvtBitmapNode(buf)
 
+proc nxConvertToBitmapFromBase64*(node: NxNode, data: cstring) {.exportc, cdecl.} =
+  node.cvtBitmapNodeFromBase64($data)
+
 proc nxConvertToAudio*(node: NxNode, data: cstring, is_path: bool = false) {.exportc, cdecl.} =
   let buf = if is_path:
     ($data).open(fmRead).readAll
@@ -135,5 +144,11 @@ proc nxConvertToAudio*(node: NxNode, data: cstring, is_path: bool = false) {.exp
   
   node.cvtAudioNode(buf)
 
+proc nxConvertToAudioFromBase64*(node: NxNode, data: cstring) {.exportc, cdecl.} =
+  node.cvtAudioNodeFromBase64($data)
+
 proc nxAddNoneNode*(parent: NxNode, name: cstring): NxNode {.exportc, cdecl.} =
   parent.addNoneNode($name)
+
+proc nxDetachNode*(node: NxNode) {.exportc, cdecl.} =
+  node.detach()

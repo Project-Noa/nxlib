@@ -1,4 +1,4 @@
-import memfiles, streams, strutils, sequtils, algorithm
+import memfiles, streams, strutils, sequtils, algorithm, base64
 import nimlz4, nimpng
 import util, compress
 
@@ -59,6 +59,7 @@ type
     audio_count*: uint32
     audio_offset*: uint64
   NxFile* {.exportc.} = ref object of RootObj
+    path*: string # for write
     length*: int64
     header*: NxHeader
     file*: Stream
@@ -274,8 +275,7 @@ proc detachChild*(nx: NxFile, parent, child: NxNode, with_data: bool = false) =
     rel_index = if parent.isNil: 0 # base node
     else: parent.children.indexOf(child)
   
-  echo "child at: ", abs_index, "rel: ", rel_index
-  
+  #echo "child at: ", abs_index, "rel: ", rel_index
   if abs_index >= 0:
     nx.nodes.delete(abs_index)
     if child.children.len > 0:
@@ -291,7 +291,7 @@ proc detachChild*(nx: NxFile, parent, child: NxNode, with_data: bool = false) =
     node.updateChildId
 
   nx.header.node_count = nx.nodes.len.uint32
-
+  parent.children_count = parent.children.len.uint16
 
 proc detach*(node: NxNode) =
   if not node.parent.isNil:
@@ -407,6 +407,10 @@ proc addBitmapNode*(parent: NxNode, uncompressed_data: string): NxNode =
     count.inc(1)
 
   parent.root.appendChild(parent, result)
+
+proc addBitmapNodeFromBase64*(parent: NxNode, base64_data: string): NxNode =
+  let decoded = base64.decode(base64_data)
+  result = parent.addBitmapNode(decoded)
 
 proc newAudioId(nx: NxFile): uint32 =
   result = nx.audios.len.uint32
@@ -550,6 +554,9 @@ proc cvtBitmapNode*(node: NxNode, uncompressed_data: string, remove_noref_relati
   
   node.setDataId(nxb.id)
 
+proc cvtBitmapNodeFromBase64*(node: NxNode, base64_data: string, remove_noref_relative: bool = false) =
+  cvtBitmapNode(node, base64.decode(base64_data), remove_noref_relative)
+
 proc cvtAudioNode*(node: NxNode, audio_data: string, remove_noref_relative: bool = false) =
   node.kind = ntAudio
 
@@ -567,3 +574,6 @@ proc cvtAudioNode*(node: NxNode, audio_data: string, remove_noref_relative: bool
   for b in audio_data.len.uint32.asBytes:
     node.data[count] = b
     count.inc
+
+proc cvtAudioNodeFromBase64*(node: NxNode, base64_data: string, remove_noref_relative: bool = false) =
+  cvtAudioNode(node, base64.decode(base64_data), remove_noref_relative)
