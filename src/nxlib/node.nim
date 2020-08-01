@@ -255,7 +255,7 @@ proc appendChild*(nx: NxFile, parent, child: NxNode) =
   if isParentHasNoChildren:
     nx.appendNode(child)
   else:
-    let last_child_id = parent.first_child_id + prev - 1
+    let last_child_id = parent.first_child_id + prev
     var new_nodes = newSeq[NxNode]()
     new_nodes.add(nx.nodes[0..<last_child_id])
     new_nodes.add(child)
