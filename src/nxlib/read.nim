@@ -125,6 +125,8 @@ proc readAudios(nx: var NxFile) =
 
 proc openNxFile*(path: string): NxFile =
   result.new
+
+  result.path = path
   
   result.length = path.getFileLength()
 

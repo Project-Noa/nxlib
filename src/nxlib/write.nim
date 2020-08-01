@@ -82,6 +82,9 @@ proc writeZeroFillMod(fs: FileStream, by: int) =
     fs.write(data)
 
 proc save*(nx: NxFile) =
+  if nx.writer.isNil:
+    nx.writer = nx.path.openFileStream(fmReadWrite)
+
   nx.writer.write(*nx.header)
 
   var
@@ -149,6 +152,7 @@ proc save*(nx: NxFile) =
   # ]#
 
   nx.writer.close()
+  nx.writer = nil
 
 proc newNxFile*(filename: string): NxFile =
   result.new
