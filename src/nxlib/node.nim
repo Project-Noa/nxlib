@@ -554,6 +554,15 @@ proc cvtBitmapNode*(node: NxNode, uncompressed_data: string, remove_noref_relati
   
   node.setDataId(nxb.id)
 
+  var count = nxb.id.asBytes.len
+  
+  for b in nxb.width.asBytes:
+    node.data[count] = b
+    count.inc
+  for b in nxb.height.asBytes:
+    node.data[count] = b
+    count.inc
+
 proc cvtBitmapNodeFromBase64*(node: NxNode, base64_data: string, remove_noref_relative: bool = false) =
   cvtBitmapNode(node, base64.decode(base64_data), remove_noref_relative)
 
