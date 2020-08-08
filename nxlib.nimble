@@ -3,6 +3,7 @@
 version       = "1.0.0"
 author        = "Project Noa"
 description   = "nxlib for nim"
+license       = "Proprietary"
 srcDir        = "src"
 
 bin           = @["nxlib"]
