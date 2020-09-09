@@ -381,9 +381,18 @@ proc addBitmap(nx: NxFile, nxb: NxBitmap) =
 proc newNxBitmap(nx: NxFile, uncompressed_data: string): NxBitmap =
   result.new
   result.png = decodePNG32(uncompressed_data)
-  var
-    data = result.png.data
-    compressed = compress_frame(data, prefs)
+  let png_data = result.png.data
+  var data = newSeq[uint8](png_data.len)
+
+  # rgb to bgr converting
+  for i in countup(0, png_data.len - 1, 4):
+    data[i]     = cast[uint8](png_data[i + 2]) # B
+    data[i + 1] = cast[uint8](png_data[i + 1]) # G
+    data[i + 2] = cast[uint8](png_data[i])     # R
+    data[i + 3] = cast[uint8](png_data[i + 3]) # A
+    
+  var o = data.toStringNoTermiate
+  var compressed = compress_frame(o, prefs)
   result.data = compressed.asBytes
   result.length = result.data.len.uint32
   result.width = result.png.width.uint16
