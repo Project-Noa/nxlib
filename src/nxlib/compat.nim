@@ -1,6 +1,9 @@
 import read, write, node, util, sugar
 import strutils
 
+proc nxCreate*(filename: cstring): NxFile {.exportc, cdecl.} =
+  result = ($filename).newNxFile()
+
 proc nxOpen*(filename: cstring): NxFile {.exportc, cdecl.} =
   result = ($filename).openNxFile()
 
@@ -8,7 +11,9 @@ proc nxSave*(nx: NxFile) {.exportc, cdecl.} =
   nx.save()
 
 proc nxSaveAs*(nx: NxFile, path: cstring) {.exportc, cdecl.} =
-  discard
+  nx.path = $path
+  nx.writer = nil
+  nx.save()
 
 proc nxGetNodes*(nx: NxFile): seq[NxNode] {.exportc, cdecl.} =
   result = nx.nodes
